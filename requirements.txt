@@ -1,0 +1,264 @@
+Market Analyzer – Funcionalidades y comandos
+
+IMPORTANTE:
+Siempre ejecutar los comandos desde la carpeta raíz del proyecto (donde están las carpetas scripts, analytics, crawler, data, etc.).
+
+Ejemplo de ejecución:
+python -m scripts.analyze_market "iphone 12"
+
+========================================
+
+Scraping manual
+========================================
+
+1.1) Scraper simple a JSON
+Script: scripts/scrape_wallapop.py
+Sirve para: obtener anuncios de Wallapop y guardarlos en data/*.json
+
+Comando básico:
+python -m scripts.scrape_wallapop "iphone 12"
+
+Parámetros útiles:
+--order_by most_relevance | price_low_to_high | price_high_to_low | newest
+--limit número máximo de productos (0–1000)
+--filter texto que debe aparecer en título+descripción (por defecto = keyword)
+--min_price precio mínimo (filtro nativo de Wallapop)
+--max_price precio máximo (filtro nativo de Wallapop)
+
+Ejemplo completo:
+python -m scripts.scrape_wallapop "iphone 12" --order_by newest --limit 300 --min_price 50 --max_price 400
+
+1.2) Scrape + análisis directo (con opción de guardar en BD)
+Script: scripts/analyze_market.py
+Sirve para: hacer scraping, calcular estadísticas y opcionalmente guardar en JSON y BD SQLite.
+
+Comando básico:
+python -m scripts.analyze_market "iphone 12"
+
+Con guardado en BD + JSON:
+python -m scripts.analyze_market "iphone 12" --order_by most_relevance --limit 300 --save_db --save_raw
+
+Parámetros:
+--order_by most_relevance | price_low_to_high | price_high_to_low | newest
+--limit
+--filter
+--min_price
+--max_price
+--save_db guarda en data/market_analyzer.db
+--save_raw guarda JSON crudo en data/
+
+1.3) Analizar un JSON concreto (sin BD)
+Script: scripts/price_stats.py
+Sirve para: sacar estadísticas de un fichero JSON generado antes.
+
+Comando:
+python -m scripts.price_stats data/NOMBRE_DEL_FICHERO.json
+
+Ejemplo:
+python -m scripts.price_stats data/wallapop_iphone_12_20251121_172233.json
+
+========================================
+2) Análisis usando la base de datos
+
+La base de datos está en:
+data/market_analyzer.db
+Tabla principal: products
+
+2.1) Resumen rápido de un keyword
+Script: analytics/query_db.py
+
+Comando:
+python -m analytics.query_db --keyword "iphone 12"
+
+Muestra:
+- nº total de anuncios con precio
+- media, mínimo, máximo
+- últimas runs (scraped_at, nº anuncios, media)
+- muestra de anuncios con precio
+
+2.2) Tendencias de precio en el tiempo (texto)
+Script: analytics/trends.py
+
+Comando:
+python -m analytics.trends --keyword "iphone 12"
+
+Muestra:
+- una fila por run (scraped_at)
+- n_items, avg_price, min_price, max_price
+- interpretación: estable / suben / bajan
+
+2.3) Comparar las dos últimas runs
+Script: analytics/compare_runs.py
+
+Comando:
+python -m analytics.compare_runs --keyword "iphone 12"
+
+Muestra:
+- stats run más reciente
+- stats run anterior
+- cambio en media y mediana (euros y porcentaje)
+- conclusión rápida de tendencia
+
+2.4) Informe de mercado completo (texto)
+Script: analytics/market_report.py
+
+Comando:
+python -m analytics.market_report --keyword "iphone 12"
+
+Muestra:
+- resumen detallado de la última run
+- distribución barato / normal / caro
+- recomendación de rango de precios
+- comparación con la run anterior
+- interpretación final
+
+2.5) Edad de anuncios según tramo de precio
+Script: analytics/price_age_segments.py
+
+Comando:
+python -m analytics.price_age_segments --keyword "iphone 12"
+
+Muestra:
+- cuartiles de precio (Q1, Q2, Q3)
+- para cada segmento (barato / normal bajo / normal alto / caro):
+nº anuncios
+edad media, mediana, mínima y máxima (en días)
+
+2.6) Velocidad de desaparición (lifetime)
+Script: analytics/sell_speed.py
+
+Comando:
+python -m analytics.sell_speed --keyword "iphone 12"
+
+Muestra, por segmento de precio:
+- nº total de anuncios
+- cuántos están “ACTIVOS” (siguen en la última run)
+- cuántos han “DESAPARECIDO”
+- porcentaje desaparecidos
+- lifetime de los desaparecidos (media, mediana, min y max en días y horas)
+
+2.7) Debug de apariciones por anuncio (nº de runs)
+Script: analytics/listings_runs_debug.py
+
+Comando:
+python -m analytics.listings_runs_debug --keyword "iphone 12"
+
+Muestra:
+- nº total de filas en products para ese keyword
+- nº de external_id únicos
+- distribución: cuántos anuncios aparecen en 1 run, en 2 runs, etc.
+- top 10 external_id con más apariciones
+
+========================================
+3) Gráficos
+
+Script principal de gráficos: analytics/plot_market.py
+
+Comando general:
+python -m analytics.plot_market --keyword "iphone 12" --kind TIPO
+
+TIPOS DISPONIBLES EN --kind:
+
+3.1) Histograma de precios
+--kind hist
+
+Ejemplo:
+python -m analytics.plot_market --keyword "iphone 12" --kind hist
+
+Genera:
+plots/iphone_12_hist.png
+
+3.2) Precio medio en el tiempo
+--kind mean
+
+Ejemplo:
+python -m analytics.plot_market --keyword "iphone 12" --kind mean
+
+Genera:
+plots/iphone_12_mean_over_time.png
+
+3.3) Boxplot por run
+--kind box
+
+Ejemplo:
+python -m analytics.plot_market --keyword "iphone 12" --kind box
+
+Genera:
+plots/iphone_12_box_by_run.png
+
+3.4) Media y mediana en el tiempo
+--kind stats
+
+Ejemplo:
+python -m analytics.plot_market --keyword "iphone 12" --kind stats
+
+Genera:
+plots/iphone_12_mean_median_over_time.png
+(dos líneas: media y mediana por run)
+
+3.5) Comparar varios keywords en un mismo gráfico
+Script: analytics/compare_keywords.py
+
+Comando:
+python -m analytics.compare_keywords --keywords "iphone 11" "iphone 12" "iphone 13"
+
+Muestra:
+- una línea de precio medio en el tiempo por cada keyword
+
+========================================
+4) Automatización del scrape diario
+
+4.1) Script que ejecuta scrapes diarios para varias keywords
+Script: scripts/daily_scrape.py
+
+Comando manual:
+python -m scripts.daily_scrape
+
+Qué hace:
+- lee las keywords a usar desde data/daily_keywords.txt si existe
+(una keyword por línea; ignora líneas vacías o que empiezan por #)
+- si ese fichero no existe o está vacío, usa la lista KEYWORDS definida dentro del script
+- para cada keyword, ejecuta internamente:
+python -m scripts.analyze_market "<keyword>" --order_by ... --limit ... --save_db
+con los parámetros configurados en ese script (ORDER_BY, LIMIT, etc.)
+
+Fichero de configuración opcional:
+data/daily_keywords.txt
+(lo crean setup_autostart.py o el propio usuario)
+
+Ejemplo de contenido de data/daily_keywords.txt:
+iphone 12
+iphone 11
+ps5
+
+4.2) Configurar auto-ejecución al iniciar Windows
+Script: scripts/setup_autostart.py
+
+Comando:
+python -m scripts.setup_autostart
+
+Qué hace:
+1) Detecta la carpeta del proyecto (la raíz donde está scripts/, analytics/, etc.).
+2) Crea/actualiza un .bat en la raíz del proyecto:
+ejecutar_scrape_al_iniciar.bat
+que:
+- entra en la carpeta del proyecto
+- si existe venv\Scripts\python.exe, lo usa
+- si existe .venv\Scripts\python.exe, lo usa
+- si no, usa python global
+- ejecuta: -m scripts.daily_scrape
+3) Crea/actualiza en la carpeta de Inicio de Windows un .vbs:
+market_analyzer_autoscrape.vbs
+que ejecuta el .bat de forma oculta (sin ventana de consola).
+4) Pregunta si quieres configurar las keywords para el daily scrape:
+- si dices que sí, pide keywords una a una y guarda:
+data/daily_keywords.txt
+con una keyword por línea.
+
+Resultado:
+A partir del siguiente inicio de sesión en Windows:
+- se ejecuta automáticamente scripts.daily_scrape en segundo plano
+- se usan las keywords de data/daily_keywords.txt (si existe)
+- se van guardando nuevas runs en data/market_analyzer.db sin intervención del usuario
+
+http://localhost:5000

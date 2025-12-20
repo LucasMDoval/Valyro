@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Valyro - Panel</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --valyro-primary: #13C1AC;
+      --valyro-primary-dark: #0E8072;
+      --valyro-soft: #D9F7F3;
+      --valyro-bg: #F5F7FA;
+      --valyro-text-main: #0F172A;
+      --valyro-text-muted: #64748B;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--valyro-bg);
+      min-height: 100vh;
+      color: var(--valyro-text-main);
+    }
+
+    .valyro-navbar {
+      background: linear-gradient(90deg, var(--valyro-primary-dark), var(--valyro-primary));
+      color: #ffffff;
+    }
+
+    .valyro-navbar .navbar-brand,
+    .valyro-navbar .nav-link {
+      color: #ECFEFF !important;
+      font-weight: 500;
+    }
+
+    .valyro-navbar .nav-link:hover {
+      color: #FFFFFF !important;
+      text-decoration: underline;
+    }
+
+    .hero-card {
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, #ECFEFF 0, #D9F7F3 45%, #E5E7EB 100%);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    }
+
+    .valyro-card {
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      border: 1px solid #E5E7EB;
+      background-color: #FFFFFF;
+    }
+
+    .hero-title {
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--valyro-text-main);
+      margin-bottom: 0.25rem;
+    }
+
+    .hero-highlight { color: var(--valyro-primary-dark); }
+
+    .valyro-subtitle {
+      color: var(--valyro-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.18rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: rgba(15, 23, 42, 0.06);
+      color: #0F172A;
+    }
+
+    .pill-success{ background: rgba(19, 193, 172, 0.18); color: var(--valyro-primary-dark); }
+    .pill-danger{ background: rgba(239, 68, 68, 0.14); color: #991B1B; }
+
+    .btn-valyro-primary {
+      background-color: var(--valyro-primary);
+      border-color: var(--valyro-primary);
+      color: #0F172A;
+      font-weight: 600;
+    }
+    .btn-valyro-primary:hover {
+      background-color: var(--valyro-primary-dark);
+      border-color: var(--valyro-primary-dark);
+      color: #ECFEFF;
+    }
+
+    .btn-valyro-outline {
+      border-color: var(--valyro-primary);
+      color: var(--valyro-primary-dark);
+      font-weight: 500;
+    }
+    .btn-valyro-outline:hover {
+      background-color: var(--valyro-soft);
+      border-color: var(--valyro-primary-dark);
+      color: var(--valyro-primary-dark);
+    }
+
+    code {
+      font-size: 0.8em;
+      background: #E5E7EB;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    footer {
+      color: var(--valyro-text-muted);
+      font-size: 0.8rem;
+    }
+
+    .quick-list {
+      list-style: none;
+      padding-left: 0;
+      margin-bottom: 0;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .quick-list li + li { border-top: 1px solid #E5E7EB; }
+    .quick-list a {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      text-decoration: none;
+      color: var(--valyro-text-main);
+      font-size: 0.92rem;
+    }
+    .quick-list a span.keyword { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .quick-list a span.meta { font-size: 0.78rem; color: var(--valyro-text-muted); }
+    .quick-list a:hover { color: var(--valyro-primary-dark); background-color: #F9FAFB; }
+
+    /* ===== Daily area ===== */
+    .daily-header {
+      border: 1px solid #E5E7EB;
+      background: linear-gradient(180deg, rgba(236,254,255,0.9), rgba(245,247,250,0.7));
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .daily-table-wrap {
+      border: 1px solid #E5E7EB;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .daily-table thead th {
+      font-size: 0.78rem;
+      color: var(--valyro-text-muted);
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .daily-table td { vertical-align: middle; }
+
+    .daily-table input, .daily-table select {
+      font-size: 0.90rem;
+      padding-top: .35rem;
+      padding-bottom: .35rem;
+    }
+
+    .daily-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      border-top: 1px solid #E5E7EB;
+      background: rgba(245,247,250,0.7);
+    }
+
+    .daily-actions .left {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg valyro-navbar mb-3">
+  <div class="container-xl">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+      <span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-white" style="width:30px;height:30px;">
+        <i class="bi bi-graph-up-arrow" style="color: var(--valyro-primary-dark); font-size: 1rem;"></i>
+      </span>
+      <div class="d-flex flex-column">
+        <span>Valyro</span>
+        <small style="font-size: 0.7rem; opacity: 0.9;">Convierte datos en decisiones</small>
+      </div>
+    </a>
+
+    <div class="d-flex gap-2">
+      <a class="nav-link" href="{{ url_for('compare_keywords') }}">
+        <i class="bi bi-sliders"></i> Comparar
+      </a>
+
+      <a class="nav-link" href="{{ url_for('setup_page') }}">
+        <i class="bi bi-wrench-adjustable"></i> Diagnóstico
+      </a>
+
+      <a class="nav-link" href="{{ url_for('about_page') }}">
+        <i class="bi bi-info-circle"></i> Sobre
+      </a>
+      <a class="nav-link" href="{{ url_for('upgrade_page') }}">
+        <i class="bi bi-stars"></i> Upgrade PRO
+      </a>
+      <a class="nav-link" href="{{ url_for('legal_page') }}">
+        <i class="bi bi-shield-check"></i> Legal
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main class="container-xl mb-4">
+  <!-- HERO -->
+  <div class="card hero-card mb-3">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+          <div class="mb-2">
+            <span class="pill">
+              <i class="bi bi-hdd-stack"></i>
+              {{ keywords|length }} keyword{{ '' if keywords|length == 1 else 's' }} en la base de datos local
+            </span>
+          </div>
+          <h1 class="hero-title h4">
+            Analiza el mercado de segunda mano con <span class="hero-highlight">Valyro</span>.
+          </h1>
+          <p class="valyro-subtitle mb-0">
+            Analiza anuncios desde tu equipo, guarda el histórico en local y calcula rangos de precios reales
+            para comprar y vender con criterio.
+          </p>
+        </div>
+
+        <div class="d-flex flex-column gap-2 align-items-stretch">
+          <a href="#scrape-section" class="btn btn-valyro-primary">
+            <i class="bi bi-cloud-arrow-down me-1"></i> Analizar nuevo producto
+          </a>
+          <a href="{{ url_for('compare_keywords') }}" class="btn btn-valyro-outline">
+            <i class="bi bi-sliders me-1"></i> Comparar varios keywords
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLASH -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="row mb-3">
+        <div class="col-lg-10">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} mb-2" role="alert">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- ✅ BLOQUE PRINCIPAL: SCRAPE RÁPIDO (izq) + ANÁLISIS RÁPIDO (der) -->
+  <div class="row g-3 mb-3">
+    <div class="col-lg-7">
+      <!-- Scrape manual -->
+      <div class="card valyro-card" id="scrape-section">
+        <div class="card-body">
+          <h2 class="h5 mb-2">
+            <i class="bi bi-cloud-arrow-down" style="color: var(--valyro-primary-dark);"></i>
+            Analizar ahora un producto
+          </h2>
+          <p class="valyro-subtitle">
+            El análisis se ejecuta en este ordenador usando tu conexión a Wallapop.
+            Eres responsable de respetar sus términos de uso.
+          </p>
+
+          <div class="mb-3" id="scrape-progress-container" style="display:none;">
+  <label class="form-label">Progreso del análisis</label>
+
+  <div class="progress" style="height: 18px; background-color: var(--valyro-soft);">
+    <div
+      id="scrape-progress-bar"
+      class="progress-bar"
+      role="progressbar"
+      style="width: 0%; background-color: var(--valyro-primary); color: #0F172A; font-weight: 600;">
+      0%
+    </div>
+  </div>
+
+  <!-- ✅ TEXTO DE ESTADO: FUERA DE LA BARRA -->
+  <div id="scrape-status-text" class="valyro-subtitle mt-1">
+    Preparando análisis…
+  </div>
+</div>
+
+
+          <form method="post" class="row g-2" onsubmit="startProgress();">
+            <input type="hidden" name="action" value="scrape">
+
+            <div class="col-12">
+              <label for="keyword_manual" class="form-label">Keyword a analizar</label>
+              <input type="text" class="form-control" name="keyword_manual" id="keyword_manual" placeholder="ej. iphone 12">
+            </div>
+
+            <div class="col-md-4">
+              <label for="limit_manual" class="form-label">Límite de anuncios</label>
+              <input type="number" class="form-control" name="limit_manual" id="limit_manual" value="300" min="1" max="1000">
+            </div>
+
+            <div class="col-md-4">
+              <label for="order_by_manual" class="form-label">Orden</label>
+              <select name="order_by_manual" id="order_by_manual" class="form-select">
+                <option value="most_relevance">Más relevantes</option>
+                <option value="price_low_to_high">Precio: de menor a mayor</option>
+                <option value="price_high_to_low">Precio: de mayor a menor</option>
+                <option value="newest">Más recientes</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Rango de precios </label>
+              <div class="d-flex gap-1">
+                <input type="number" class="form-control" name="min_price_manual" id="min_price_manual" step="1" placeholder="Mín.">
+                <input type="number" class="form-control" name="max_price_manual" id="max_price_manual" step="1" placeholder="Máx.">
+              </div>
+            </div>
+
+            <div class="col-12 mt-2">
+              <button type="submit" class="btn btn-valyro-primary w-100">Analizar y guardar en BD</button>
+            </div>
+          </form>
+
+          <p class="valyro-subtitle mt-2 mb-0">
+            Internamente se llama a <code>scripts.analyze_market</code> con <code>--save_db</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <!-- Quick -->
+      <div class="card valyro-card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h2 class="h6 mb-0">
+              <i class="bi bi-speedometer2" style="color: var(--valyro-primary-dark);"></i>
+              Análisis rápido
+            </h2>
+            <a href="{{ url_for('compare_keywords') }}" class="btn btn-sm btn-valyro-outline">
+              <i class="bi bi-sliders me-1"></i> Comparar
+            </a>
+          </div>
+
+          {% if keywords %}
+            <p class="valyro-subtitle">Haz clic en un keyword para ver su resumen de mercado, rangos de precios y gráfico.</p>
+            <ul class="quick-list">
+              {% for kw in keywords %}
+                <li>
+                  <a href="{{ url_for('keyword_detail', kw=kw) }}">
+                    <span class="keyword">{{ kw }}</span>
+                    <span class="meta">ver detalle</span>
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="valyro-subtitle mb-0">Todavía no hay keywords con datos en la base de datos.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ DAILY DEBAJO (igual que lo tenías) -->
+  <div class="card valyro-card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+        <div>
+          <h2 class="h5 mb-1">
+            <i class="bi bi-calendar2-check" style="color: var(--valyro-primary-dark);"></i>
+            Análisis diario
+          </h2>
+          <p class="valyro-subtitle mb-0">
+            Configura parámetros por keyword. Se guarda en <code>data/daily_keywords.txt</code> y lo ejecuta <code>scripts.daily_scrape.py</code>.
+          </p>
+        </div>
+        <span class="valyro-subtitle">Tarea: <code>{{ task_name }}</code></span>
+      </div>
+
+      <!-- Banda automatización -->
+      <div class="daily-header mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            {% if not is_windows %}
+              <span class="pill pill-danger"><i class="bi bi-x-circle"></i> Solo Windows</span>
+            {% else %}
+              {% if task_installed %}
+                <span class="pill pill-success"><i class="bi bi-check-circle"></i> Activo{% if schedule_time %} — {{ schedule_time }}{% endif %}</span>
+              {% else %}
+                <span class="pill pill-danger"><i class="bi bi-x-circle"></i> Desactivado</span>
+              {% endif %}
+            {% endif %}
+            <span class="valyro-subtitle">Logs: <code>logs/</code> (daily_scrape_YYYYMMDD.log)</span>
+          </div>
+
+          {% if is_windows %}
+          <div class="d-flex gap-2 align-items-end flex-wrap">
+            <form method="post" class="d-flex gap-2 align-items-end">
+              <input type="hidden" name="action" value="install_daily_task">
+              <div>
+                <label for="daily_time" class="form-label mb-1">Hora diaria</label>
+                <input type="time" class="form-control" name="daily_time" id="daily_time" value="{{ schedule_time }}" required>
+              </div>
+              <button type="submit" class="btn btn-valyro-primary">
+                <i class="bi bi-calendar2-plus me-1"></i> Activar / actualizar
+              </button>
+            </form>
+
+            <form method="post">
+              <input type="hidden" name="action" value="run_daily_now">
+              <button type="submit" class="btn btn-outline-dark">
+                <i class="bi bi-play-circle me-1"></i> Probar ahora
+              </button>
+            </form>
+
+            {% if task_installed %}
+            <form method="post" onsubmit="return confirm('Vas a desactivar el scrape diario automático. ¿Seguro?');">
+              <input type="hidden" name="action" value="remove_daily_task">
+              <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-slash-circle me-1"></i> Desactivar
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if daily_preview_warnings %}
+          <div class="alert alert-warning mt-2 mb-0">
+            <strong>Ojo:</strong>
+            <ul class="mb-0">
+              {% for w in daily_preview_warnings %}
+                <li>{{ w }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Tabla -->
+      <div class="daily-table-wrap">
+        <form method="post" id="dailyTableForm">
+          <input type="hidden" name="action" value="update_keywords_table">
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle daily-table mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="min-width: 260px;">Keyword</th>
+                  <th style="width: 120px;" class="text-end">Límite</th>
+                  <th style="min-width: 220px;">Orden</th>
+                  <th style="width: 140px;" class="text-end">Mín.</th>
+                  <th style="width: 140px;" class="text-end">Máx.</th>
+                  <th style="width: 56px;"></th>
+                </tr>
+              </thead>
+              <tbody id="dailyRows">
+                {% set rows = daily_preview if daily_preview and daily_preview|length > 0 else [] %}
+                {% if rows|length == 0 %}
+                  <tr class="daily-row">
+                    <td><input type="text" class="form-control" name="daily_kw[]" placeholder="ej. iphone 12"></td>
+                    <td><input type="number" class="form-control text-end" name="daily_limit[]" value="{{ daily_defaults.limit }}" min="1" max="1000"></td>
+                    <td>
+                      <select class="form-select" name="daily_order_by[]">
+                        <option value="most_relevance" selected>Más relevantes</option>
+                        <option value="price_low_to_high">Precio: de menor a mayor</option>
+                        <option value="price_high_to_low">Precio: de mayor a menor</option>
+                        <option value="newest">Más recientes</option>
+                      </select>
+                    </td>
+                    <td><input type="number" class="form-control text-end" name="daily_min_price[]" placeholder="—" step="1"></td>
+                    <td><input type="number" class="form-control text-end" name="daily_max_price[]" placeholder="—" step="1"></td>
+                    <td class="text-end">
+                      <button type="button" class="btn btn-outline-danger btn-del-row" title="Borrar fila">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                {% else %}
+                  {% for r in rows %}
+                    <tr class="daily-row">
+                      <td><input type="text" class="form-control" name="daily_kw[]" value="{{ r.keyword }}"></td>
+                      <td><input type="number" class="form-control text-end" name="daily_limit[]" value="{{ r.limit }}" min="1" max="1000"></td>
+                      <td>
+                        <select class="form-select" name="daily_order_by[]">
+                          <option value="most_relevance" {% if r.order_by == 'most_relevance' %}selected{% endif %}>Más relevantes</option>
+                          <option value="price_low_to_high" {% if r.order_by == 'price_low_to_high' %}selected{% endif %}>Precio: de menor a mayor</option>
+                          <option value="price_high_to_low" {% if r.order_by == 'price_high_to_low' %}selected{% endif %}>Precio: de mayor a menor</option>
+                          <option value="newest" {% if r.order_by == 'newest' %}selected{% endif %}>Más recientes</option>
+                        </select>
+                      </td>
+                      <td><input type="number" class="form-control text-end" name="daily_min_price[]" value="{{ '' if r.min_price is none else r.min_price }}" placeholder="—" step="1"></td>
+                      <td><input type="number" class="form-control text-end" name="daily_max_price[]" value="{{ '' if r.max_price is none else r.max_price }}" placeholder="—" step="1"></td>
+                      <td class="text-end">
+                        <button type="button" class="btn btn-outline-danger btn-del-row" title="Borrar fila">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="daily-actions">
+            <div class="left">
+              <button type="button" class="btn btn-outline-dark" id="btnAddDailyRow">
+                <i class="bi bi-plus-circle me-1"></i> Añadir fila
+              </button>
+              <span class="valyro-subtitle">
+                Consejo: usa el mismo orden/rango que en el análisis individual.
+              </span>
+            </div>
+
+            <button type="submit" class="btn btn-valyro-primary">
+              <i class="bi bi-save me-1"></i> Guardar configuración diaria
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer class="border-top py-3 bg-white">
+  <div class="container-xl text-center">
+    <a href="{{ url_for('legal_page') }}" class="text-decoration-none text-muted">Aviso legal</a>
+    <span class="text-muted">— Valyro es una herramienta de análisis local, no afiliada a Wallapop.</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+<script>
+let progressSource = null;
+
+function startProgress() {
+  const container = document.getElementById("scrape-progress-container");
+  const bar = document.getElementById("scrape-progress-bar");
+  if (!container || !bar) return;
+
+  container.style.display = "block";
+  bar.style.width = "0%";
+  bar.innerText = "0%";
+
+  if (progressSource) progressSource.close();
+  progressSource = new EventSource("/progress");
+
+  progressSource.onmessage = function(event) {
+  try {
+    const data = JSON.parse(event.data);
+    const value = data.value || 0;
+    const status = data.status || "idle";
+
+    bar.style.width = value + "%";
+    bar.innerText = value + "%";
+
+    const statusText = document.getElementById("scrape-status-text");
+    if (statusText) {
+      if (status === "starting") {
+        statusText.innerText = "Iniciando scraping…";
+      } else if (value < 80) {
+        statusText.innerText = "Recopilando anuncios…";
+      } else if (value < 95) {
+        statusText.innerText = "Procesando datos…";
+      } else {
+        statusText.innerText = "Finalizando…";
+      }
+    }
+
+    if (status === "finished" || status === "error") {
+      setTimeout(() => {
+        if (progressSource) {
+          progressSource.close();
+          progressSource = null;
+        }
+      }, 800);
+    }
+  } catch (e) {
+    console.error("Error parsing progress data", e);
+  }
+};
+
+
+  progressSource.onerror = function() {
+    if (progressSource) {
+      progressSource.close();
+      progressSource = null;
+    }
+  };
+}
+
+// tabla daily: añadir/borrar filas
+(function(){
+  const tbody = document.getElementById("dailyRows");
+  const btnAdd = document.getElementById("btnAddDailyRow");
+
+  function bindDeleteButtons(){
+    tbody.querySelectorAll(".btn-del-row").forEach(btn => {
+      btn.onclick = () => {
+        const tr = btn.closest("tr");
+        if (!tr) return;
+        const rows = tbody.querySelectorAll("tr.daily-row");
+        if (rows.length <= 1) {
+          tr.querySelectorAll("input").forEach(i => i.value = "");
+          const sel = tr.querySelector("select");
+          if (sel) sel.value = "most_relevance";
+          const limit = tr.querySelector('input[name="daily_limit[]"]');
+          if (limit) limit.value = "{{ daily_defaults.limit }}";
+          return;
+        }
+        tr.remove();
+      };
+    });
+  }
+
+  function newRowHtml(){
+    return `
+      <tr class="daily-row">
+        <td><input type="text" class="form-control" name="daily_kw[]" placeholder="ej. iphone 12"></td>
+        <td><input type="number" class="form-control text-end" name="daily_limit[]" value="{{ daily_defaults.limit }}" min="1" max="1000"></td>
+        <td>
+          <select class="form-select" name="daily_order_by[]">
+            <option value="most_relevance" selected>Más relevantes</option>
+            <option value="price_low_to_high">Precio: de menor a mayor</option>
+            <option value="price_high_to_low">Precio: de mayor a menor</option>
+            <option value="newest">Más recientes</option>
+          </select>
+        </td>
+        <td><input type="number" class="form-control text-end" name="daily_min_price[]" placeholder="—" step="1"></td>
+        <td><input type="number" class="form-control text-end" name="daily_max_price[]" placeholder="—" step="1"></td>
+        <td class="text-end">
+          <button type="button" class="btn btn-outline-danger btn-del-row" title="Borrar fila">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
+  btnAdd?.addEventListener("click", () => {
+    tbody.insertAdjacentHTML("beforeend", newRowHtml());
+    bindDeleteButtons();
+  });
+
+  bindDeleteButtons();
+})();
+</script>
+</body>
+</html>

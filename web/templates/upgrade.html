@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Upgrade PRO — Valyro</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    crossorigin="anonymous"
+  >
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    rel="stylesheet"
+  >
+
+  <style>
+    :root {
+      --valyro-primary: #13C1AC;
+      --valyro-primary-dark: #0E8072;
+      --valyro-soft: #D9F7F3;
+      --valyro-bg: #F5F7FA;
+      --valyro-text-main: #1E293B;
+      --valyro-text-muted: #64748B;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ECFEFF 0, var(--valyro-bg) 45%, #E5E7EB 100%);
+      min-height: 100vh;
+      color: var(--valyro-text-main);
+    }
+
+    .valyro-navbar {
+      background: linear-gradient(90deg, var(--valyro-primary-dark), var(--valyro-primary));
+      color: #ffffff;
+    }
+
+    .valyro-navbar .navbar-brand,
+    .valyro-navbar .nav-link {
+      color: #ECFEFF !important;
+      font-weight: 500;
+    }
+
+    .valyro-navbar .nav-link:hover {
+      color: #FFFFFF !important;
+      text-decoration: underline;
+    }
+
+    .valyro-card {
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.10);
+      border: 1px solid #E5E7EB;
+      background-color: #FFFFFF;
+    }
+
+    .valyro-subtitle {
+      color: var(--valyro-text-muted);
+      font-size: 0.92rem;
+    }
+
+    .badge-soft {
+      background: var(--valyro-soft);
+      color: var(--valyro-primary-dark);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      padding: 0.2rem 0.7rem;
+      font-weight: 500;
+    }
+
+    .btn-valyro-primary {
+      background-color: var(--valyro-primary);
+      border-color: var(--valyro-primary);
+      color: #0F172A;
+      font-weight: 600;
+    }
+
+    .btn-valyro-primary:hover {
+      background-color: var(--valyro-primary-dark);
+      border-color: var(--valyro-primary-dark);
+      color: #ECFEFF;
+    }
+
+    footer {
+      color: var(--valyro-text-muted);
+      font-size: 0.8rem;
+    }
+
+    .feature-list li {
+      margin-bottom: 0.3rem;
+    }
+  </style>
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg valyro-navbar mb-3">
+  <div class="container-xl">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+      <span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-white"
+            style="width:30px;height:30px;">
+        <i class="bi bi-graph-up-arrow" style="color: var(--valyro-primary-dark); font-size: 1rem;"></i>
+      </span>
+      <div class="d-flex flex-column">
+        <span>Valyro</span>
+        <small style="font-size: 0.7rem; opacity: 0.9;">Convierte datos en decisiones</small>
+      </div>
+    </a>
+    <div class="d-flex gap-2">
+      <a class="nav-link" href="{{ url_for('compare_keywords') }}">
+        <i class="bi bi-sliders"></i> Comparar
+      </a>
+      <a class="nav-link" href="{{ url_for('about_page') }}">
+        <i class="bi bi-info-circle"></i> Sobre
+      </a>
+      <a class="nav-link" href="{{ url_for('upgrade_page') }}">
+        <i class="bi bi-stars"></i> Upgrade PRO
+      </a>
+      <a class="nav-link" href="{{ url_for('legal_page') }}">
+        <i class="bi bi-shield-check"></i> Legal
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main class="container-xl mb-4">
+  <div class="mb-3">
+    <a href="{{ url_for('index') }}" class="valyro-subtitle text-decoration-none">
+      <i class="bi bi-arrow-left"></i> Volver al panel
+    </a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card valyro-card mb-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h1 class="h4 mb-1">
+                <i class="bi bi-stars" style="color: var(--valyro-primary-dark);"></i>
+                Valyro PRO (en preparación)
+              </h1>
+              <p class="valyro-subtitle mb-0">
+                Versión pensada para usuarios que viven de la compraventa o gestionan inventario de forma seria.
+              </p>
+            </div>
+            <span class="badge-soft">Próximamente</span>
+          </div>
+
+          <hr>
+
+          <h2 class="h6 mb-1">Qué podrías desbloquear con PRO</h2>
+          <ul class="valyro-subtitle feature-list">
+            <li><strong>Histórico ampliado</strong> y más profundidad en los análisis.</li>
+            <li><strong>Alertas locales</strong> cuando aparezcan productos por debajo de cierto precio.</li>
+            <li><strong>Exportación avanzada</strong> (CSV/Excel) con filtros personalizados.</li>
+            <li><strong>Perfiles de productos</strong> guardados (sets de keywords favoritos).</li>
+            <li><strong>Informes “multi-keyword”</strong> para recopilar varios productos en un solo documento.</li>
+          </ul>
+
+          <h2 class="h6 mb-1 mt-3">Modelo de licencia (idea inicial)</h2>
+          <p class="valyro-subtitle mb-2">
+            La idea de Valyro PRO es ofrecer licencias de uso:
+          </p>
+          <ul class="valyro-subtitle">
+            <li>Uso local, sin enviar datos a la nube.</li>
+            <li>Clave de activación por equipo o usuario.</li>
+            <li>Pagos mensuales o anuales según el tipo de uso.</li>
+          </ul>
+
+          <p class="valyro-subtitle mb-0">
+            Esta pantalla es solo informativa. La parte de pagos, activación y gestión de licencias
+            todavía no está implementada en esta versión.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card valyro-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">
+            <i class="bi bi-lightbulb" style="color: var(--valyro-primary-dark);"></i>
+            Cómo usar esto a tu favor
+          </h2>
+          <p class="valyro-subtitle">
+            Incluso en versión básica, Valyro ya te da:
+          </p>
+          <ul class="valyro-subtitle">
+            <li>Rangos de precios razonables para comprar o vender.</li>
+            <li>Comparaciones rápidas entre productos similares.</li>
+            <li>Informes HTML listos para guardar o imprimir.</li>
+          </ul>
+          <p class="valyro-subtitle mb-0">
+            Cuando tengas claro qué necesitas exactamente (alertas, más histórico, multi-plataforma, etc.),
+            esta sección será la puerta de entrada a la versión PRO.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="border-top py-3 bg-white">
+  <div class="container-xl text-center">
+    <a href="{{ url_for('legal_page') }}" class="text-decoration-none text-muted">
+      Aviso legal
+    </a>
+    <span class="text-muted">
+      — Valyro es una herramienta de análisis local, no afiliada a Wallapop.
+    </span>
+  </div>
+</footer>
+
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  crossorigin="anonymous"
+></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Valyro — {{ keyword }}</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --valyro-primary: #13C1AC;
+      --valyro-primary-dark: #0E8072;
+      --valyro-soft: #D9F7F3;
+      --valyro-bg: #F5F7FA;
+      --valyro-text-main: #1E293B;
+      --valyro-text-muted: #64748B;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ECFEFF 0, var(--valyro-bg) 45%, #E5E7EB 100%);
+      min-height: 100vh;
+      color: var(--valyro-text-main);
+    }
+
+    .valyro-navbar {
+      background: linear-gradient(90deg, var(--valyro-primary-dark), var(--valyro-primary));
+    }
+
+    .valyro-navbar .navbar-brand,
+    .valyro-navbar .nav-link {
+      color: #ECFEFF !important;
+      font-weight: 500;
+    }
+
+    .valyro-card {
+      border-radius: 16px;
+      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.10);
+      border: 1px solid #E5E7EB;
+      background-color: #FFFFFF;
+    }
+
+    .valyro-subtitle {
+      color: var(--valyro-text-muted);
+      font-size: 0.92rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.18rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: var(--valyro-soft);
+      color: var(--valyro-primary-dark);
+    }
+
+    img.chart {
+      max-width: 100%;
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+    }
+
+    footer {
+      color: var(--valyro-text-muted);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg valyro-navbar mb-3">
+  <div class="container-xl">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      Valyro
+    </a>
+    <div class="d-flex gap-2">
+      <a class="nav-link" href="{{ url_for('compare_keywords') }}">Comparar</a>
+      <a class="nav-link" href="{{ url_for('upgrade_page') }}">Upgrade PRO</a>
+      <a class="nav-link" href="{{ url_for('legal_page') }}">Legal</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container-xl mb-4">
+  <a href="{{ url_for('index') }}" class="valyro-subtitle text-decoration-none">
+    ← Volver al panel
+  </a>
+
+  <h1 class="h3 mt-2">{{ keyword }}</h1>
+
+  <div class="d-flex gap-2 mb-3">
+    <span class="pill">Último análisis: {{ scraped_at }}</span>
+    <span class="pill">Anuncios analizados: {{ n }}</span>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Resumen -->
+    <div class="col-lg-6">
+      <div class="card valyro-card">
+        <div class="card-body">
+          <h2 class="h5">Resumen del mercado</h2>
+          <table class="table table-sm mb-0">
+            <tr><th>Media</th><td>{{ media }} €</td></tr>
+            <tr><th>Mediana</th><td>{{ mediana }} €</td></tr>
+            <tr><th>Mínimo</th><td>{{ minimo }} €</td></tr>
+            <tr><th>Máximo</th><td>{{ maximo }} €</td></tr>
+            <tr><th>Q1</th><td>{{ q1 }} €</td></tr>
+            <tr><th>Q3</th><td>{{ q3 }} €</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recomendación -->
+    <div class="col-lg-6">
+      <div class="card valyro-card">
+        <div class="card-body">
+          <h2 class="h5">Recomendación de precios</h2>
+          <ul class="list-unstyled mb-0">
+            <li><strong>Rango normal:</strong> {{ rango_normal }}</li>
+            <li><strong>Venta rápida:</strong> {{ rango_rapido }}</li>
+            <li><strong>Más margen:</strong> {{ rango_lento }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Velocidad de salida (SIN tiempo mediano) -->
+    {% if sell_speed %}
+    <div class="col-lg-6">
+      <div class="card valyro-card">
+        <div class="card-body">
+          <h2 class="h5">Velocidad de salida</h2>
+          <ul class="list-unstyled mb-0">
+            <li><strong>Anuncios analizados:</strong> {{ sell_speed.total }}</li>
+            <li><strong>Desaparecidos:</strong> {{ sell_speed.desap }} ({{ sell_speed.pct_desap }} %)</li>
+            <li><strong>Siguen activos:</strong> {{ sell_speed.activos }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Gráfico -->
+    {% if plot_url %}
+    <div class="col-lg-6">
+      <div class="card valyro-card">
+        <div class="card-body">
+          <h2 class="h5">Evolución del precio</h2>
+          <img src="{{ plot_url }}" class="chart">
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+
+<footer class="border-top py-3 bg-white text-center">
+  <a href="{{ url_for('legal_page') }}" class="text-muted text-decoration-none">Aviso legal</a>
+  <span class="text-muted">— Valyro no está afiliado a Wallapop</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+
+# =========================
+# Entornos virtuales
+# =========================
+.venv/
+venv/
+
+# =========================
+# Datos locales (NO subir)
+# =========================
+data/
+logs/
+reports/
+plots/
+
+# =========================
+# Playwright
+# =========================
+.playwright/
+ms-playwright/
+
+# =========================
+# Licencias y claves
+# =========================
+license.json
+private_key.pem
+
+# =========================
+# Sistema operativo
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Build / packaging
+# =========================
+build/
+dist/
+installer/
+*.spec
+
+# =========================
+# Playwright / browser data
+# =========================
+playwright/
+storage/
+
+# =========================
+# Ejecutables / instaladores
+# =========================
+*.exe
+*.msi
+
+# =========================
+# Config local
+# =========================
+config/local.*
+
+# Playwright (todas las variantes)
+playwright
+playwright/
+playwright/**
+
+# Playwright runtime
+playwright
+
+# Configuracion local
+config/
+

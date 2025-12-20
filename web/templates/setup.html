@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Diagnóstico — Valyro</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --valyro-primary: #13C1AC;
+      --valyro-primary-dark: #0E8072;
+      --valyro-soft: #D9F7F3;
+      --valyro-bg: #F5F7FA;
+      --valyro-text-main: #0F172A;
+      --valyro-text-muted: #64748B;
+    }
+
+    body{
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ECFEFF 0, var(--valyro-bg) 45%, #E5E7EB 100%);
+      min-height: 100vh;
+      color: var(--valyro-text-main);
+    }
+
+    .valyro-navbar {
+      background: linear-gradient(90deg, var(--valyro-primary-dark), var(--valyro-primary));
+      color: #ffffff;
+    }
+    .valyro-navbar .navbar-brand,
+    .valyro-navbar .nav-link {
+      color: #ECFEFF !important;
+      font-weight: 500;
+    }
+    .valyro-navbar .nav-link:hover {
+      color: #FFFFFF !important;
+      text-decoration: underline;
+    }
+
+    .valyro-card{
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      border: 1px solid #E5E7EB;
+      background-color: #FFFFFF;
+    }
+
+    .valyro-subtitle{
+      color: var(--valyro-text-muted);
+      font-size: 0.92rem;
+    }
+
+    .badge-ok{
+      background: rgba(19,193,172,0.18);
+      color: var(--valyro-primary-dark);
+      border: 1px solid rgba(14,128,114,0.20);
+    }
+    .badge-bad{
+      background: rgba(239,68,68,0.12);
+      color: #991B1B;
+      border: 1px solid rgba(153,27,27,0.18);
+    }
+
+    code {
+      font-size: 0.82em;
+      background: #E5E7EB;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg valyro-navbar mb-3">
+  <div class="container-xl">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+      <span class="rounded-circle d-inline-flex align-items-center justify-content-center bg-white"
+            style="width:30px;height:30px;">
+        <i class="bi bi-graph-up-arrow" style="color: var(--valyro-primary-dark); font-size: 1rem;"></i>
+      </span>
+      <div class="d-flex flex-column">
+        <span>Valyro</span>
+        <small style="font-size: 0.7rem; opacity: 0.9;">Convierte datos en decisiones</small>
+      </div>
+    </a>
+
+    <div class="d-flex gap-2">
+      <a class="nav-link" href="{{ url_for('index') }}"><i class="bi bi-house"></i> Panel</a>
+      <a class="nav-link" href="{{ url_for('compare_keywords') }}"><i class="bi bi-sliders"></i> Comparar</a>
+      <a class="nav-link" href="{{ url_for('setup_page') }}"><i class="bi bi-wrench-adjustable"></i> Diagnóstico</a>
+      <a class="nav-link" href="{{ url_for('legal_page') }}"><i class="bi bi-shield-check"></i> Legal</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container-xl mb-4">
+  <div class="mb-3">
+    <a href="{{ url_for('index') }}" class="valyro-subtitle text-decoration-none">
+      <i class="bi bi-arrow-left"></i> Volver al panel
+    </a>
+    <h1 class="h4 mb-0 mt-1">Diagnóstico / Setup</h1>
+    <p class="valyro-subtitle mb-0">
+      Aquí ves si el sistema está listo para analizar. Si algo falla, pulsa “Arreglar”.
+    </p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="row mb-2">
+        <div class="col-lg-12">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} mb-2" role="alert">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card valyro-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">
+            <i class="bi bi-clipboard2-check" style="color: var(--valyro-primary-dark);"></i>
+            Checklist técnica
+          </h2>
+          <p class="valyro-subtitle mb-3">
+            Resultado de comprobaciones locales.
+          </p>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Check</th>
+                  <th>Estado</th>
+                  <th>Detalle</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in checks %}
+                <tr>
+                  <td>{{ c.label }}</td>
+                  <td>
+                    {% if c.ok %}
+                      <span class="badge badge-ok">OK</span>
+                    {% else %}
+                      <span class="badge badge-bad">FALLO</span>
+                    {% endif %}
+                  </td>
+                  <td class="valyro-subtitle">
+                    {% if c.detail %}{{ c.detail }}{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card valyro-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">
+            <i class="bi bi-tools" style="color: var(--valyro-primary-dark);"></i>
+            Acciones rápidas
+          </h2>
+          <p class="valyro-subtitle">Usa esto para “dejarlo listo” sin consola.</p>
+
+          <form method="post" class="d-grid gap-2">
+            <input type="hidden" name="action" value="fix_playwright">
+            <button type="submit" class="btn btn-outline-dark">
+              <i class="bi bi-download me-1"></i> Arreglar Playwright (instalar paquete)
+            </button>
+          </form>
+
+          <form method="post" class="d-grid gap-2 mt-2">
+            <input type="hidden" name="action" value="fix_browsers">
+            <button type="submit" class="btn btn-outline-dark">
+              <i class="bi bi-browser-chrome me-1"></i> Arreglar browsers (Playwright install)
+            </button>
+          </form>
+
+          <form method="post" class="d-grid gap-2 mt-2">
+            <input type="hidden" name="action" value="open_logs">
+            <button type="submit" class="btn btn-outline-dark">
+              <i class="bi bi-folder2-open me-1"></i> Abrir carpeta logs
+            </button>
+          </form>
+
+          <form method="post" class="d-grid gap-2 mt-2">
+            <input type="hidden" name="action" value="open_data">
+            <button type="submit" class="btn btn-outline-dark">
+              <i class="bi bi-folder2-open me-1"></i> Abrir carpeta data
+            </button>
+          </form>
+
+          <hr class="my-3">
+
+          <form method="post" class="d-grid gap-2">
+            <input type="hidden" name="action" value="recheck">
+            <button type="submit" class="btn btn-valyro-primary">
+              <i class="bi bi-arrow-repeat me-1"></i> Re-comprobar
+            </button>
+          </form>
+
+          <p class="valyro-subtitle mt-2 mb-0">
+            Nota: en versión <code>.exe</code>, Playwright debería venir empaquetado. Si no, esto ayuda a diagnosticar.
+          </p>
+        </div>
+      </div>
+
+      <div class="card valyro-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">
+            <i class="bi bi-shield-exclamation" style="color: var(--valyro-primary-dark);"></i>
+            Si algo falla
+          </h2>
+          <p class="valyro-subtitle mb-0">
+            Mira el último log en <code>logs/</code> y revisa el check de Playwright.
+            La mayoría de fallos “al usuario final” vienen de browsers no instalados.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>
