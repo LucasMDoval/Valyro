@@ -6,7 +6,7 @@
 import argparse
 from collections import Counter
 
-from storage.db import get_connection, DB_PATH
+from utils.db import get_connection, DB_PATH
 
 
 def main():

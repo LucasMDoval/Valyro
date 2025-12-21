@@ -10,7 +10,7 @@ import statistics
 
 import matplotlib.pyplot as plt
 
-from storage.db import get_connection, DB_PATH
+from utils.db import get_connection, DB_PATH
 from analytics.market_core import fetch_runs_for_keyword, fetch_mean_median_series
 
 PLOTS_DIR = Path("plots")

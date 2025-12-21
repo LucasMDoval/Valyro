@@ -4,7 +4,7 @@ import argparse
 from typing import List, Tuple
 
 from analytics.market_core import fetch_runs_for_keyword
-from storage.db import DB_PATH, delete_run, delete_all_for_keyword
+from utils.db import DB_PATH, delete_run, delete_all_for_keyword
 
 RunRow = Tuple[str, int, float, float, float]  # (scraped_at, n_items, avg, min, max)
 

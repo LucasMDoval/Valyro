@@ -7,7 +7,7 @@ from pathlib import Path
 import argparse
 
 from crawler.wallapop_client import fetch_products
-from storage.db import save_products
+from utils.db import save_products
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"

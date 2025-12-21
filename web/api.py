@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from storage.db import DB_PATH, get_connection
+from utils.db import DB_PATH, get_connection
 from analytics.market_core import get_last_run_stats, get_sell_speed_summary
 import subprocess
 import sys as _sys

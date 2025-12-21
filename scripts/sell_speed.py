@@ -8,7 +8,7 @@ from datetime import datetime
 import statistics
 from typing import List, Dict, Any, Optional, Tuple
 
-from storage.db import get_connection, DB_PATH
+from utils.db import get_connection, DB_PATH
 
 
 def parse_scraped_at(value: str) -> Optional[datetime]:

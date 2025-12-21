@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from crawler.wallapop_client import fetch_products
-from storage.db import save_products
+from utils.db import save_products
 
 
 def calcular_estadisticas(productos):

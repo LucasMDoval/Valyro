@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import statistics
 from typing import List, Tuple, Optional
 
-from storage.db import get_connection, DB_PATH
+from utils.db import get_connection, DB_PATH
 
 
 def parse_created_at(value) -> Optional[datetime]:

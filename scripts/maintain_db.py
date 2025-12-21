@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from storage.db import DB_PATH, get_connection
+from utils.db import DB_PATH, get_connection
 from utils.logger import get_logger
 
 log = get_logger("maintain")

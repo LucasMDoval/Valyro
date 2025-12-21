@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Tuple, Optional, Dict, Any
 import statistics
 
-from storage.db import get_connection, DB_PATH
+from utils.db import get_connection, DB_PATH
 
 
 RunRow = Tuple[str, int, float, float, float]

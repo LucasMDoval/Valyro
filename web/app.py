@@ -31,7 +31,7 @@ from flask import (
 
 from analytics.export_html_report import generar_grafico_mean_median, generar_html_report
 from analytics.market_core import fetch_runs_for_keyword, get_last_run_stats, get_sell_speed_summary
-from storage.db import DB_PATH, delete_all_for_keyword, delete_run, get_connection
+from utils.db import DB_PATH, delete_all_for_keyword, delete_run, get_connection
 from web.api import api_bp
 from web.legal import LEGAL_NOTICE
 

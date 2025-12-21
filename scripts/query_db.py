@@ -6,7 +6,7 @@
 import argparse
 from pathlib import Path
 
-from storage.db import get_connection, DB_PATH
+from utils.db import get_connection, DB_PATH
 
 
 def mostrar_resumen_keyword(keyword: str, limit: int):
