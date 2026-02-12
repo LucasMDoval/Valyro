@@ -1,9 +1,14 @@
-from typing import List, Dict, Optional
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote_plus
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-import re
+
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
+
 import random
-import os
+import re
+import json
 
 from utils.logger import get_logger
 
@@ -30,47 +35,22 @@ SCRAPER_SETTINGS = {
 
 
 def matches_filter(substring: str, text: str) -> bool:
+    """
+    Filtro tolerante:
+    - Si substring está vacío => True.
+    - Si todos los tokens aparecen en el texto (en cualquier orden) => True.
+    """
     q = (substring or "").lower().strip()
     t = (text or "").lower()
 
     if not q:
         return True
-    if q in t:
-        return True
 
     tokens = q.split()
-    if len(tokens) < 3:
-        return False
-
-    t_tokens = t.split()
-
-    for i in range(len(t_tokens) - 1):
-        first_ok = tokens[0] in t_tokens[i]
-        second_ok = tokens[1] in t_tokens[i + 1]
-        if not (first_ok and second_ok):
-            continue
-
-        j = i + 2
-        ok = True
-        for qt in tokens[2:]:
-            found = False
-            while j < len(t_tokens):
-                if qt in t_tokens[j]:
-                    found = True
-                    j += 1
-                    break
-                j += 1
-            if not found:
-                ok = False
-                break
-
-        if ok:
-            return True
-
-    return False
+    return all(tok in t for tok in tokens)
 
 
-def _normalize_item(item: Dict) -> Dict:
+def _normalize_item(item: Dict[str, Any]) -> Dict[str, Any]:
     precio = item.get("precio")
     try:
         precio = float(precio) if precio is not None else None
@@ -89,6 +69,86 @@ def _normalize_item(item: Dict) -> Dict:
     }
 
 
+def _looks_like_listing_items(items: Any) -> bool:
+    """Heurística: lista de dicts con pinta de producto Wallapop."""
+    if not isinstance(items, list) or not items:
+        return False
+    first = items[0]
+    if not isinstance(first, dict):
+        return False
+    return (
+        "id" in first
+        and ("title" in first or "description" in first)
+        and ("price" in first or "web_slug" in first)
+    )
+
+
+def _extract_items_from_json(data: Any) -> Optional[List[Dict[str, Any]]]:
+    """
+    Devuelve la lista de productos (items) desde respuestas Wallapop.
+
+    Rutas soportadas:
+    - NUEVA (la que tú has visto): data.section.items
+    - Antigua del proyecto: data.section.payload.items
+    - Otros casos: items / payload.items / data.items
+    - Fallback recursivo
+    """
+
+    # Descarta JSON de Next.js (UI/i18n)
+    if isinstance(data, dict) and "pageProps" in data:
+        pp = data.get("pageProps")
+        if isinstance(pp, dict) and "i18nMessages" in pp:
+            return None
+
+    if isinstance(data, dict):
+        # ✅ NUEVO: data.section.items (tu caso)
+        try:
+            sec = (data.get("data") or {}).get("section")
+            if isinstance(sec, dict):
+                items = sec.get("items")
+                if _looks_like_listing_items(items):
+                    return items  # type: ignore[return-value]
+        except Exception:
+            pass
+
+        # Ruta "antigua": data.section.payload.items
+        try:
+            items = (
+                (((data.get("data") or {}).get("section") or {}).get("payload") or {}).get("items")
+            )
+            if _looks_like_listing_items(items):
+                return items  # type: ignore[return-value]
+        except Exception:
+            pass
+
+        # Rutas comunes
+        for candidate in (
+            data.get("items"),
+            (data.get("payload") or {}).get("items") if isinstance(data.get("payload"), dict) else None,
+            (data.get("data") or {}).get("items") if isinstance(data.get("data"), dict) else None,
+        ):
+            if _looks_like_listing_items(candidate):
+                return candidate  # type: ignore[return-value]
+
+        # Búsqueda recursiva
+        for v in data.values():
+            found = _extract_items_from_json(v)
+            if found:
+                return found
+
+    elif isinstance(data, list):
+        # Si el JSON ya es una lista de items
+        if _looks_like_listing_items(data):
+            return data  # type: ignore[return-value]
+
+        for v in data:
+            found = _extract_items_from_json(v)
+            if found:
+                return found
+
+    return None
+
+
 def fetch_products(
     keyword: str,
     order_by: str = "most_relevance",
@@ -99,7 +159,7 @@ def fetch_products(
     *,
     headless: bool = False,
     strict: bool = False,
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     cfg = SCRAPER_SETTINGS.get(DEFAULT_SCRAPER_MODE, SCRAPER_SETTINGS["respectful"])
     INITIAL_WAIT_MS = cfg["INITIAL_WAIT_MS"]
     AFTER_CLICK_WAIT_MS = cfg["AFTER_CLICK_WAIT_MS"]
@@ -107,7 +167,8 @@ def fetch_products(
     MAX_EMPTY_ITERATIONS = cfg["MAX_EMPTY_ITERATIONS"]
     SCROLL_DELTA = cfg["SCROLL_DELTA"]
 
-    substring = substring_filter or keyword
+    # ⚠️ IMPORTANTE: no autofiltrar por keyword; solo filtrar si el usuario lo pasa
+    substring = (substring_filter or "").strip() or None
 
     base = "https://es.wallapop.com/search"
     params = [
@@ -124,9 +185,10 @@ def fetch_products(
 
     url = base + "?" + "&".join(params)
 
-    productos: List[Dict] = []
-    vistos = set()
+    productos: List[Dict[str, Any]] = []
+    vistos: set[str] = set()
     search_hits = {"count": 0}
+    logged_endpoint = {"done": False}
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
@@ -145,38 +207,70 @@ def fetch_products(
 
             if len(productos) >= limit:
                 return
-            if "api/v3/search" not in response.url:
+
+            u = response.url
+
+            # Ignora terceros (amplitude, sentry, etc.)
+            if "wallapop.com" not in u:
                 return
 
-            search_hits["count"] += 1
+            # Reducimos ruido: solo endpoints típicos donde sale el JSON de items
+            if not ("section?" in u or "search?" in u or "/api/" in u or "_next" in u):
+                return
 
+            if response.status != 200:
+                return
+
+            # Parse JSON (aunque el content-type venga raro)
             try:
                 data = response.json()
             except Exception:
+                try:
+                    txt = response.text()
+                    if not txt or not txt.lstrip().startswith(("{", "[")):
+                        return
+                    data = json.loads(txt)
+                except Exception:
+                    return
+
+            items = _extract_items_from_json(data)
+            if not items:
                 return
 
-            section = data.get("data", {}).get("section", {})
-            payload = section.get("payload", {})
-            items = payload.get("items", [])
+            search_hits["count"] += 1
+            if not logged_endpoint["done"]:
+                logged_endpoint["done"] = True
+                log.info(f"Endpoint de items detectado: {response.status} {u}")
 
             for item in items:
                 if len(productos) >= limit:
                     break
+                if not isinstance(item, dict):
+                    continue
 
                 item_id = item.get("id")
-                if not item_id or item_id in vistos:
+                if not item_id:
                     continue
-                vistos.add(item_id)
+                item_id_str = str(item_id)
+                if item_id_str in vistos:
+                    continue
+                vistos.add(item_id_str)
 
                 titulo = (item.get("title") or "").strip()
                 descripcion = (item.get("description") or "").strip()
-                texto = titulo + " " + descripcion
+                texto = (titulo + " " + descripcion).strip()
 
                 if substring and not matches_filter(substring, texto):
                     continue
 
-                precio = item.get("price", {}).get("amount")
-                ciudad = item.get("location", {}).get("city")
+                precio = None
+                try:
+                    precio = (item.get("price") or {}).get("amount")
+                except Exception:
+                    precio = None
+
+                loc = item.get("location") or {}
+                ciudad = loc.get("city") if isinstance(loc, dict) else None
                 created_at = item.get("created_at")
 
                 web_slug = item.get("web_slug")
@@ -185,7 +279,7 @@ def fetch_products(
                 productos.append(
                     {
                         "platform": "wallapop",
-                        "id": item_id,
+                        "id": item_id_str,
                         "titulo": titulo,
                         "descripcion": descripcion,
                         "precio": precio,
@@ -273,14 +367,16 @@ def fetch_products(
                     intentos_sin_nuevos = 0
                     prev_len = ahora
 
-                log.info(f"Productos que pasan el filtro: {ahora}/{limit} (vacías seguidas={intentos_sin_nuevos})")
+                log.info(
+                    f"Productos que pasan el filtro: {ahora}/{limit} (vacías seguidas={intentos_sin_nuevos})"
+                )
 
             log.info(f"Scraping terminado. Total productos crudos: {len(productos)}")
 
             if search_hits["count"] == 0:
                 msg = (
-                    "No se ha recibido ninguna respuesta 'api/v3/search'. "
-                    "Posible captcha/cambio/bloqueo."
+                    "No se ha detectado ninguna respuesta JSON con items de búsqueda. "
+                    "Posible cambio de endpoint/estructura, bloqueo (403/429) o respuesta no-JSON (captcha)."
                 )
                 log.warning(msg)
                 if strict:

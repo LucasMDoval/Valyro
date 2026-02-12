@@ -4,6 +4,9 @@ from datetime import datetime
 from typing import List, Tuple, Optional, Dict, Any
 import statistics
 
+from utils.price_outliers import filter_prices_by_median
+from utils.listing_filters import get_preset
+
 from utils.db import get_connection, DB_PATH
 
 
@@ -24,27 +27,41 @@ def fetch_runs_for_keyword(keyword: str) -> List[RunRow]:
     if not DB_PATH.is_file():
         return []
 
+    # Nota: aunque sería más rápido con agregaciones SQL, aquí calculamos las
+    # métricas en Python para aplicar el filtro anti-outliers de precio.
+
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT
-            scraped_at,
-            COUNT(*)              AS n_items,
-            AVG(price)            AS avg_price,
-            MIN(price)            AS min_price,
-            MAX(price)            AS max_price
+        SELECT DISTINCT scraped_at
         FROM products
         WHERE keyword = ?
           AND price IS NOT NULL
-        GROUP BY scraped_at
         ORDER BY scraped_at DESC;
         """,
         (keyword,),
     )
-    rows = cur.fetchall()
+    scraped_ats = [r[0] for r in cur.fetchall()]
     conn.close()
-    return rows
+
+    out: List[RunRow] = []
+    for scraped_at in scraped_ats:
+        precios = fetch_prices_for_run(keyword, scraped_at)
+        stats = calcular_stats_precios(precios)
+        if not stats:
+            continue
+        out.append(
+            (
+                scraped_at,
+                int(stats["n"]),
+                float(stats["media"]),
+                float(stats["minimo"]),
+                float(stats["maximo"]),
+            )
+        )
+
+    return out
 
 
 def fetch_prices_for_run(keyword: str, scraped_at: str) -> List[float]:
@@ -80,19 +97,45 @@ def calcular_stats_precios(precios: List[float]) -> Optional[dict]:
     if not precios:
         return None
 
-    n = len(precios)
-    media = sum(precios) / n
-    mediana = statistics.median(precios)
-    minimo = min(precios)
-    maximo = max(precios)
+    # Limpieza "Wallapop":
+    #  1) eliminar precios gancho (0/1€) mediante umbral absoluto
+    #  2) recortar outliers respecto a mediana
+    preset = get_preset("soft")
+    min_valid_price = float(preset["min_valid_price"])
+    precios_clean = [float(p) for p in precios if p is not None]
+    precios_clean = [p for p in precios_clean if p > min_valid_price]
 
-    if len(precios) >= 4:
-        q1, q2, q3 = statistics.quantiles(precios, n=4)
+    precios_filtrados, meta = filter_prices_by_median(
+        precios_clean,
+        lower_factor=float(preset["lower_factor"]),
+        upper_factor=float(preset["upper_factor"]),
+    )
+    if not precios_filtrados:
+        return None
+
+    n_raw = len(precios)
+    n = len(precios_filtrados)
+    media = sum(precios_filtrados) / n
+    mediana = statistics.median(precios_filtrados)
+    minimo = min(precios_filtrados)
+    maximo = max(precios_filtrados)
+
+    if len(precios_filtrados) >= 4:
+        q1, q2, q3 = statistics.quantiles(precios_filtrados, n=4)
     else:
         q1 = q2 = q3 = mediana
 
     return {
         "n": n,
+        "n_raw": n_raw,
+        # Compatibilidad: antes esto era un único filtro por mediana
+        "outlier_filter": meta.as_dict(),
+        "min_valid_price": min_valid_price,
+        "filters": {
+            "mode": "soft",
+            "min_valid_price": min_valid_price,
+            "outlier_filter": meta.as_dict(),
+        },
         "media": media,
         "mediana": mediana,
         "minimo": minimo,

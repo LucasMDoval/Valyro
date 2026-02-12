@@ -20,6 +20,7 @@ from typing import Any
 from flask import (
     Flask,
     Response,
+    jsonify,
     abort,
     flash,
     redirect,
@@ -65,8 +66,8 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 
 
-# Progreso global del scraping (simple)
-SCRAPE_PROGRESS: dict[str, Any] = {"value": 0, "status": "idle"}
+from web.progress_state import SCRAPE_PROGRESS
+
 
 
 # =============================================================================
@@ -77,7 +78,15 @@ def load_keywords_from_file() -> list[str]:
         return []
     contenido = KEYWORDS_FILE.read_text(encoding="utf-8")
     lineas = [l.strip() for l in contenido.splitlines()]
-    return [l for l in lineas if l and not l.startswith("#")]
+    kws: list[str] = []
+    for l in lineas:
+        if not l or l.startswith("#"):
+            continue
+        # Permite formato "keyword | key=value ..." (nos quedamos con el keyword)
+        kw = l.split("|", 1)[0].strip()
+        if kw:
+            kws.append(kw)
+    return kws
 
 
 def load_keywords_from_db() -> list[str]:
@@ -104,9 +113,12 @@ def load_keywords_from_db() -> list[str]:
 # =============================================================================
 DEFAULT_DAILY = {
     "order_by": "most_relevance",
-    "limit": 300,
+    "limit": 500,
     "min_price": None,
     "max_price": None,
+    # Filtros recomendados para Wallapop
+    "filter_mode": "soft",  # soft|strict|off
+    "exclude_bad_text": True,
 }
 
 _ALLOWED_ORDER_BY = {"most_relevance", "price_low_to_high", "price_high_to_low", "newest"}
@@ -156,19 +168,11 @@ def parse_daily_keywords_file() -> tuple[list[dict[str, Any]], list[str]]:
                 continue
 
             k, v = kv
-            if k == "limit":
-                try:
-                    cfg["limit"] = max(1, min(1000, int(v)))
-                except Exception:
-                    warnings.append(f"Línea {i}: limit inválido '{v}'.")
-            elif k == "order_by":
-                if v not in _ALLOWED_ORDER_BY:
-                    warnings.append(
-                        f"Línea {i}: order_by inválido '{v}' "
-                        f"(válidos: {', '.join(sorted(_ALLOWED_ORDER_BY))})."
-                    )
-                else:
-                    cfg["order_by"] = v
+            if k in ("limit", "order_by"):
+                # Por requisito: en la UI ya no se permite elegir límite ni orden.
+                # Los tokens se admiten para compatibilidad, pero se ignoran.
+                warnings.append(f"Línea {i}: '{k}={v}' se ignora (fijo: limit={DEFAULT_DAILY['limit']}, order_by={DEFAULT_DAILY['order_by']}).")
+                continue
             elif k in ("min_price", "min"):
                 try:
                     cfg["min_price"] = _to_float_or_none(v)
@@ -179,6 +183,20 @@ def parse_daily_keywords_file() -> tuple[list[dict[str, Any]], list[str]]:
                     cfg["max_price"] = _to_float_or_none(v)
                 except Exception:
                     warnings.append(f"Línea {i}: max_price inválido '{v}'.")
+            elif k in ("filter", "filter_mode", "mode"):
+                vv = str(v).strip().lower()
+                if vv in ("soft", "strict", "off"):
+                    cfg["filter_mode"] = vv
+                else:
+                    warnings.append(f"Línea {i}: filter_mode inválido '{v}' (usa soft|strict|off).")
+            elif k in ("exclude_bad_text", "text_filter", "exclude_bad"):
+                vv = str(v).strip().lower()
+                if vv in ("1", "true", "yes", "on"):
+                    cfg["exclude_bad_text"] = True
+                elif vv in ("0", "false", "no", "off"):
+                    cfg["exclude_bad_text"] = False
+                else:
+                    warnings.append(f"Línea {i}: exclude_bad_text inválido '{v}' (usa 1/0, true/false).")
             else:
                 warnings.append(f"Línea {i}: clave desconocida '{k}' (se ignora).")
 
@@ -195,6 +213,8 @@ def parse_daily_keywords_file() -> tuple[list[dict[str, Any]], list[str]]:
                 "order_by": cfg["order_by"],
                 "min_price": cfg["min_price"],
                 "max_price": cfg["max_price"],
+                "filter_mode": cfg.get("filter_mode", "soft"),
+                "exclude_bad_text": bool(cfg.get("exclude_bad_text", True)),
                 "raw_line": raw,
                 "line_no": i,
                 "notes": [],  # por compatibilidad si tu HTML pinta "notes"
@@ -425,15 +445,14 @@ def run_analyze_market_from_web(
     order_by: str,
     min_price: float | None,
     max_price: float | None,
+    filter_mode: str,
+    exclude_bad_text: bool,
 ) -> int:
     global SCRAPE_PROGRESS
 
-    if limit <= 0:
-        limit = 50
-    if limit > 1000:
-        limit = 1000
-    if order_by not in _ALLOWED_ORDER_BY:
-        order_by = "most_relevance"
+    # Por requisito: fijo a 500 anuncios + "más relevantes".
+    limit = DEFAULT_DAILY["limit"]
+    order_by = DEFAULT_DAILY["order_by"]
 
     SCRAPE_PROGRESS["value"] = 0
     SCRAPE_PROGRESS["status"] = "starting"
@@ -467,6 +486,14 @@ def run_analyze_market_from_web(
             str(limit),
             "--save_db",
         ]
+
+        # Filtros Wallapop
+        fm = (filter_mode or "soft").strip().lower()
+        if fm not in ("soft", "strict", "off"):
+            fm = "soft"
+        cmd.extend(["--filter_mode", fm])
+        if not exclude_bad_text:
+            cmd.append("--no_text_filter")
         if min_price is not None:
             cmd.extend(["--min_price", str(min_price)])
         if max_price is not None:
@@ -576,11 +603,274 @@ def progress_stream():
 
     return Response(event_stream(), mimetype="text/event-stream")
 
+# =============================================================================
+# API extra para el frontend React (migración de funcionalidades legacy)
+# =============================================================================
+
+def _api_error(code: str, message: str, http_status: int = 400):
+    return jsonify({"error": {"code": code, "message": message}}), http_status
+
+
+@app.get("/api/v1/daily")
+def api_daily_get():
+    schedule_time = load_schedule_time()
+    task_installed = is_task_installed()
+    daily_preview, daily_preview_warnings = parse_daily_keywords_file()
+    return jsonify(
+        {
+            "task_name": TASK_NAME,
+            "is_windows": _is_windows(),
+            "schedule_time": schedule_time,
+            "task_installed": task_installed,
+            "defaults": DEFAULT_DAILY,
+            "rows": daily_preview,
+            "warnings": daily_preview_warnings,
+        }
+    )
+
+
+@app.post("/api/v1/daily")
+def api_daily_save():
+    data = request.get_json(silent=True) or {}
+    rows = data.get("rows", [])
+    if not isinstance(rows, list):
+        return _api_error("invalid_rows", "rows debe ser una lista", 400)
+
+    def _num_or_none(x):
+        if x is None:
+            return None
+        s = str(x).strip()
+        if not s:
+            return None
+        try:
+            return float(s)
+        except Exception:
+            return None
+
+    lines_out = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        kw = (r.get("keyword") or "").strip()
+        if not kw:
+            continue
+
+        mn = _num_or_none(r.get("min_price"))
+        mx = _num_or_none(r.get("max_price"))
+        if mn is not None and mx is not None and mn > mx:
+            mn, mx = mx, mn
+
+        fm = str(r.get("filter_mode") or DEFAULT_DAILY.get("filter_mode", "soft")).strip().lower()
+        if fm not in ("soft", "strict", "off"):
+            fm = DEFAULT_DAILY.get("filter_mode", "soft")
+
+        exclude_bad = r.get("exclude_bad_text")
+        if isinstance(exclude_bad, bool):
+            pass
+        elif exclude_bad is None:
+            exclude_bad = bool(DEFAULT_DAILY.get("exclude_bad_text", True))
+        else:
+            exclude_bad = str(exclude_bad).strip().lower() in ("1", "true", "yes", "on")
+
+        parts = [kw]
+        if mn is not None:
+            parts.append(f"min_price={mn:g}")
+        if mx is not None:
+            parts.append(f"max_price={mx:g}")
+        if fm != DEFAULT_DAILY.get("filter_mode", "soft"):
+            parts.append(f"filter={fm}")
+        if bool(exclude_bad) != bool(DEFAULT_DAILY.get("exclude_bad_text", True)):
+            parts.append(f"exclude_bad_text={'1' if exclude_bad else '0'}")
+
+        lines_out.append(" | ".join(parts))
+
+    DATA_DIR.mkdir(exist_ok=True)
+    KEYWORDS_FILE.write_text("\n".join(lines_out) + ("\n" if lines_out else ""), encoding="utf-8")
+    return jsonify({"status": "ok", "count": len(lines_out)})
+
+
+@app.post("/api/v1/daily/run_now")
+def api_daily_run_now():
+    ok, msg = run_daily_now()
+    return jsonify({"ok": bool(ok), "message": msg})
+
+
+@app.post("/api/v1/daily/task/install")
+def api_daily_task_install():
+    data = request.get_json(silent=True) or {}
+    t = _validate_time_hhmm(str(data.get("time") or ""))
+    if not t:
+        return _api_error("invalid_time", "Hora inválida. Usa HH:MM (ej. 09:30).", 400)
+    ok, msg = install_daily_task(t)
+    return jsonify({"ok": bool(ok), "message": msg, "time": t})
+
+
+@app.post("/api/v1/daily/task/remove")
+def api_daily_task_remove():
+    ok, msg = remove_daily_task()
+    return jsonify({"ok": bool(ok), "message": msg})
+
+
+@app.post("/api/v1/compare")
+def api_compare():
+    data = request.get_json(silent=True) or {}
+    kws = data.get("keywords", [])
+    if not isinstance(kws, list):
+        return _api_error("invalid_keywords", "keywords debe ser una lista", 400)
+
+    selected = [str(k).strip() for k in kws if str(k).strip()]
+    if len(selected) < 2:
+        return _api_error("need_2_keywords", "Selecciona al menos 2 keywords.", 400)
+
+    rows = []
+    for kw in selected:
+        res = get_last_run_stats(kw)
+        if not res:
+            continue
+        scraped_at, stats = res
+        q1 = stats["q1"]
+        q3 = stats["q3"]
+        mediana = stats["mediana"]
+        rows.append(
+            {
+                "keyword": kw,
+                "scraped_at": scraped_at,
+                "n": stats["n"],
+                "media": stats["media"],
+                "mediana": mediana,
+                "q1": q1,
+                "q3": q3,
+                "rango_normal": f"{q1:.0f}–{q3:.0f} €",
+                "rango_rapido": f"{q1:.0f}–{mediana:.0f} €",
+            }
+        )
+
+    if not rows:
+        return _api_error("no_data", "No hay datos suficientes para comparar.", 404)
+
+    plot_url = None
+    try:
+        p = generar_grafico_comparacion(selected)
+        if p:
+            plot_url = url_for("plots_static", filename=Path(p).name)
+    except Exception:
+        plot_url = None
+
+    return jsonify({"comparison": rows, "plot_url": plot_url, "selected": selected})
+
+
+@app.get("/api/v1/keyword/<kw>/runs")
+def api_keyword_runs(kw: str):
+    kw = (kw or "").strip()
+    if not kw:
+        return _api_error("invalid_keyword", "keyword vacío", 400)
+
+    runs = fetch_runs_for_keyword(kw) or []
+    out = []
+    for scraped_at, n_items, avg_price, min_price, max_price in runs:
+        out.append(
+            {
+                "scraped_at": scraped_at,
+                "n": n_items,
+                "media": avg_price,
+                "minimo": min_price,
+                "maximo": max_price,
+            }
+        )
+    return jsonify({"keyword": kw, "runs": out})
+
+
+@app.delete("/api/v1/keyword/<kw>/runs/<path:scraped_at>")
+def api_keyword_delete_run(kw: str, scraped_at: str):
+    kw = (kw or "").strip()
+    scraped_at = (scraped_at or "").strip()
+    if not kw or not scraped_at:
+        return _api_error("invalid_params", "Falta kw o scraped_at", 400)
+
+    deleted = delete_run(kw, scraped_at)
+    return jsonify({"keyword": kw, "scraped_at": scraped_at, "deleted": int(deleted)})
+
+
+@app.delete("/api/v1/keyword/<kw>")
+def api_keyword_delete_all(kw: str):
+    kw = (kw or "").strip()
+    if not kw:
+        return _api_error("invalid_keyword", "keyword vacío", 400)
+
+    deleted = delete_all_for_keyword(kw)
+    return jsonify({"keyword": kw, "deleted": int(deleted)})
+
+
+@app.post("/api/v1/keyword/<kw>/report")
+def api_keyword_report(kw: str):
+    kw = (kw or "").strip()
+    if not kw:
+        return _api_error("invalid_keyword", "keyword vacío", 400)
+
+    REPORTS_DIR.mkdir(exist_ok=True)
+    outfile = REPORTS_DIR / f"valyro_report_{_slugify(kw)}.html"
+    generar_html_report(kw, outfile=str(outfile))
+    return jsonify({"keyword": kw, "url": url_for("reports_static", filename=outfile.name)})
+
+
+@app.post("/api/v1/keyword/<kw>/plot/mean-median")
+def api_keyword_plot_mean_median(kw: str):
+    kw = (kw or "").strip()
+    if not kw:
+        return _api_error("invalid_keyword", "keyword vacío", 400)
+
+    try:
+        p = generar_grafico_mean_median(kw)
+        if not p:
+            return _api_error("no_data", "No hay datos para generar gráfico.", 404)
+        return jsonify({"keyword": kw, "url": url_for("plots_static", filename=Path(p).name)})
+    except Exception:
+        return _api_error("plot_failed", "Error generando el gráfico.", 500)
+
+
+@app.get("/api/v1/setup/checks")
+def api_setup_checks():
+    return jsonify({"checks": get_setup_checks()})
+
+
+@app.post("/api/v1/setup/action")
+def api_setup_action():
+    data = request.get_json(silent=True) or {}
+    action = (data.get("action") or "").strip()
+
+    if action == "open_logs":
+        _open_path(_logs_dir())
+        return jsonify({"ok": True, "message": "Carpeta logs abierta."})
+
+    if action == "open_data":
+        _open_path(DATA_DIR)
+        return jsonify({"ok": True, "message": "Carpeta data abierta."})
+
+    if action == "fix_playwright":
+        if _is_frozen():
+            return jsonify({"ok": False, "message": "Modo .exe: si falla Playwright es tema del instalador."})
+        rc, out, err = _run_cmd([sys.executable, "-m", "pip", "install", "--user", "playwright"], cwd=PROJECT_ROOT)
+        ok = (rc == 0)
+        return jsonify({"ok": ok, "message": "Playwright instalado/actualizado." if ok else "Error instalando Playwright.", "rc": rc})
+
+    if action == "fix_browsers":
+        rc, out, err = _run_cmd([sys.executable, "-m", "playwright", "install", "chromium"], cwd=PROJECT_ROOT)
+        ok = (rc == 0)
+        return jsonify({"ok": ok, "message": "Browsers instalados (chromium)." if ok else "Error instalando browsers.", "rc": rc})
+
+    return _api_error("unknown_action", "Acción no reconocida", 400)
+
+
+@app.get("/api/v1/legal")
+def api_legal():
+    return jsonify({"html": LEGAL_NOTICE})
+
 
 # =============================================================================
 # Rutas principales
 # =============================================================================
-@app.route("/", methods=["GET", "POST"])
+@app.route("/legacy", methods=["GET", "POST"])
+
 def index():
     kws_file = load_keywords_from_file()
     kws_db = load_keywords_from_db()
@@ -607,27 +897,27 @@ def index():
 
         if action == "update_keywords_table":
             kws = request.form.getlist("daily_kw[]")
-            limits = request.form.getlist("daily_limit[]")
-            orders = request.form.getlist("daily_order_by[]")
             mins = request.form.getlist("daily_min_price[]")
             maxs = request.form.getlist("daily_max_price[]")
+            modes = request.form.getlist("daily_filter_mode[]")
+            texts = request.form.getlist("daily_exclude_bad_text[]")
 
             lines_out = []
-            for kw, lim, ob, mn, mx in zip(kws, limits, orders, mins, maxs):
+            # En la UI ya no se recogen límite ni orden. Se guardan solo keyword + rango.
+            # Alineamos listas (si faltan valores, se usan defaults)
+            max_len = max(len(kws), len(mins), len(maxs), len(modes), len(texts))
+            def _get(lst, i, default=""):
+                return lst[i] if i < len(lst) else default
+
+            for i in range(max_len):
+                kw = _get(kws, i)
+                mn = _get(mins, i)
+                mx = _get(maxs, i)
+                fm = _get(modes, i, DEFAULT_DAILY.get("filter_mode", "soft"))
+                et = _get(texts, i, "1")
                 kw = (kw or "").strip()
                 if not kw:
                     continue
-
-                # sanitizar
-                try:
-                    lim_i = int(lim) if str(lim).strip() else DEFAULT_DAILY["limit"]
-                except Exception:
-                    lim_i = DEFAULT_DAILY["limit"]
-                lim_i = max(1, min(1000, lim_i))
-
-                ob = (ob or DEFAULT_DAILY["order_by"]).strip()
-                if ob not in _ALLOWED_ORDER_BY:
-                    ob = DEFAULT_DAILY["order_by"]
 
                 mn_v = None
                 mx_v = None
@@ -645,12 +935,26 @@ def index():
                 if mn_v is not None and mx_v is not None and mn_v > mx_v:
                     mn_v, mx_v = mx_v, mn_v
 
-                # línea en formato compatible con tu daily_scrape.py
-                parts = [kw, f"limit={lim_i}", f"order_by={ob}"]
+                # Línea compatible con daily_scrape.py (order/limit están fijados en el propio script)
+                parts = [kw]
                 if mn_v is not None:
                     parts.append(f"min_price={mn_v:g}")
                 if mx_v is not None:
                     parts.append(f"max_price={mx_v:g}")
+
+                fm = str(fm).strip().lower()
+                if fm not in ("soft", "strict", "off"):
+                    fm = DEFAULT_DAILY.get("filter_mode", "soft")
+                if fm != DEFAULT_DAILY.get("filter_mode", "soft"):
+                    parts.append(f"filter={fm}")
+
+                exclude_bad = True
+                try:
+                    exclude_bad = str(et).strip().lower() in ("1", "true", "yes", "on")
+                except Exception:
+                    exclude_bad = True
+                if exclude_bad != bool(DEFAULT_DAILY.get("exclude_bad_text", True)):
+                    parts.append(f"exclude_bad_text={'1' if exclude_bad else '0'}")
 
                 lines_out.append(" | ".join(parts))
 
@@ -704,20 +1008,21 @@ def index():
 
         if action == "scrape":
             kw_manual = request.form.get("keyword_manual", "").strip()
-            limit_str = request.form.get("limit_manual", "").strip()
-            order_by = request.form.get("order_by_manual", "most_relevance").strip()
+            # Por requisito: fijo a 500 anuncios + "más relevantes".
+            limit_val = DEFAULT_DAILY["limit"]
+            order_by = DEFAULT_DAILY["order_by"]
 
             min_price_str = request.form.get("min_price_manual", "").strip()
             max_price_str = request.form.get("max_price_manual", "").strip()
+
+            filter_mode = (request.form.get("filter_mode_manual") or DEFAULT_DAILY.get("filter_mode", "soft")).strip().lower()
+            exclude_bad_text = bool(request.form.get("exclude_bad_text_manual"))
 
             if not kw_manual:
                 flash("Debes indicar un keyword para scrapear.", "danger")
                 return redirect(url_for("index"))
 
-            try:
-                limit_val = int(limit_str) if limit_str else 200
-            except ValueError:
-                limit_val = 200
+            # limit_val ya viene fijado
 
             min_price = None
             max_price = None
@@ -735,7 +1040,15 @@ def index():
             if min_price is not None and max_price is not None and min_price > max_price:
                 min_price, max_price = max_price, min_price
 
-            rc = run_analyze_market_from_web(kw_manual, limit_val, order_by, min_price, max_price)
+            rc = run_analyze_market_from_web(
+                kw_manual,
+                limit_val,
+                order_by,
+                min_price,
+                max_price,
+                filter_mode,
+                exclude_bad_text,
+            )
             if rc == 0:
                 detalles_rango = ""
                 if min_price is not None or max_price is not None:
@@ -1232,6 +1545,18 @@ def _open_desktop_window(port: int) -> int:
     webview.start()
     return 0
 
+
+FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def spa(path: str):
+    if FRONTEND_DIST.is_dir():
+        file_path = FRONTEND_DIST / path
+        if path and file_path.is_file():
+            return send_from_directory(FRONTEND_DIST, path)
+        return send_from_directory(FRONTEND_DIST, "index.html")
+    return redirect(url_for("index"))
 
 
 # =============================================================================

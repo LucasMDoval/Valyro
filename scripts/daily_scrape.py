@@ -8,6 +8,7 @@ import argparse
 
 from crawler.wallapop_client import fetch_products
 from utils.db import save_products
+from utils.listing_filters import apply_listing_filters
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -15,7 +16,11 @@ KEYWORDS_FILE = DATA_DIR / "daily_keywords.txt"
 
 STATE_PATH = DATA_DIR / "daily_scrape_state.json"
 LOCK_PATH = DATA_DIR / "daily_scrape.lock"
-DEFAULTS_PATH = DATA_DIR / "daily_scrape_config.json"  # opcional: defaults globales
+DEFAULTS_PATH = DATA_DIR / "daily_scrape_config.json"  # opcional: defaults globales (solo min/max)
+
+# === Fijos por requisito del proyecto ===
+FIXED_ORDER_BY = "most_relevance"
+FIXED_LIMIT = 500
 
 ALLOWED_ORDERS = {"most_relevance", "price_low_to_high", "price_high_to_low", "newest"}
 
@@ -37,30 +42,35 @@ def load_defaults() -> dict:
     Defaults globales opcionales (si existe daily_scrape_config.json).
     Si no existe, usa defaults razonables.
     """
+    # En este proyecto, order_by y limit NO son configurables por el usuario:
+    # siempre se usa 500 + "most_relevance".
     cfg = {
-        "order_by": "most_relevance",
-        "limit": 300,
+        "order_by": FIXED_ORDER_BY,
+        "limit": FIXED_LIMIT,
         "min_price": None,
         "max_price": None,
+        # Filtros recomendados para Wallapop
+        "filter_mode": "soft",
+        "exclude_bad_text": True,
     }
     try:
         if DEFAULTS_PATH.is_file():
             data = json.loads(DEFAULTS_PATH.read_text(encoding="utf-8"))
             if isinstance(data, dict):
-                if data.get("order_by") in ALLOWED_ORDERS:
-                    cfg["order_by"] = data["order_by"]
-                if data.get("limit") is not None:
-                    try:
-                        cfg["limit"] = int(data["limit"])
-                    except Exception:
-                        pass
+                # order_by y limit: ignorados a propósito (fijos)
                 cfg["min_price"] = _num_or_none(data.get("min_price"))
                 cfg["max_price"] = _num_or_none(data.get("max_price"))
+                fm = str(data.get("filter_mode") or "").strip().lower()
+                if fm in ("soft", "strict", "off"):
+                    cfg["filter_mode"] = fm
+                ebt = data.get("exclude_bad_text")
+                if isinstance(ebt, bool):
+                    cfg["exclude_bad_text"] = ebt
     except Exception:
         pass
 
-    # clamp
-    cfg["limit"] = max(1, min(1000, int(cfg["limit"] or 300)))
+    # clamp (por seguridad)
+    cfg["limit"] = max(1, min(1000, int(cfg["limit"] or FIXED_LIMIT)))
 
     # swap if needed
     if cfg["min_price"] is not None and cfg["max_price"] is not None and cfg["min_price"] > cfg["max_price"]:
@@ -90,6 +100,8 @@ def parse_keyword_line(line: str, defaults: dict) -> dict | None:
         "limit": defaults["limit"],
         "min_price": defaults["min_price"],
         "max_price": defaults["max_price"],
+        "filter_mode": defaults.get("filter_mode", "soft"),
+        "exclude_bad_text": bool(defaults.get("exclude_bad_text", True)),
     }
 
     for token in parts[1:]:
@@ -99,21 +111,27 @@ def parse_keyword_line(line: str, defaults: dict) -> dict | None:
         k = k.strip().lower()
         v = v.strip()
 
-        if k == "order_by":
-            if v in ALLOWED_ORDERS:
-                cfg["order_by"] = v
-
-        elif k == "limit":
-            try:
-                cfg["limit"] = max(1, min(1000, int(v)))
-            except Exception:
-                pass
+        # order_by y limit: ignorados a propósito (fijos)
+        if k in ("order_by", "limit"):
+            continue
 
         elif k in ("min", "min_price"):
             cfg["min_price"] = _num_or_none(v)
 
         elif k in ("max", "max_price"):
             cfg["max_price"] = _num_or_none(v)
+
+        elif k in ("filter", "filter_mode", "mode"):
+            vv = str(v).strip().lower()
+            if vv in ("soft", "strict", "off"):
+                cfg["filter_mode"] = vv
+
+        elif k in ("exclude_bad_text", "text_filter", "exclude_bad"):
+            vv = str(v).strip().lower()
+            if vv in ("1", "true", "yes", "on"):
+                cfg["exclude_bad_text"] = True
+            elif vv in ("0", "false", "no", "off"):
+                cfg["exclude_bad_text"] = False
 
     if cfg["min_price"] is not None and cfg["max_price"] is not None and cfg["min_price"] > cfg["max_price"]:
         cfg["min_price"], cfg["max_price"] = cfg["max_price"], cfg["min_price"]
@@ -175,10 +193,15 @@ def run_one_keyword(item: dict, *, max_retries: int, base_backoff_s: int) -> boo
     limit = item["limit"]
     min_price = item["min_price"]
     max_price = item["max_price"]
+    filter_mode = item.get("filter_mode", "soft")
+    exclude_bad_text = bool(item.get("exclude_bad_text", True))
 
     for attempt in range(1, max_retries + 1):
         print(f"\n[{datetime.now().isoformat()}] Keyword='{kw}' intento {attempt}/{max_retries}")
-        print(f"Config kw: order_by={order_by}, limit={limit}, min={min_price}, max={max_price}")
+        print(
+            f"Config kw: order_by={order_by}, limit={limit}, min={min_price}, max={max_price}, "
+            f"filter_mode={filter_mode}, text_filter={'on' if exclude_bad_text else 'off'}"
+        )
 
         try:
             productos = fetch_products(
@@ -192,6 +215,25 @@ def run_one_keyword(item: dict, *, max_retries: int, base_backoff_s: int) -> boo
 
             if not productos:
                 raise RuntimeError("0 resultados devueltos (o fallo silencioso).")
+
+            # Limpieza Wallapop: texto + mínimo absoluto + outliers por mediana
+            productos, meta = apply_listing_filters(
+                productos,
+                mode=filter_mode,
+                exclude_bad_text=exclude_bad_text,
+            )
+            if meta.total_in != meta.kept:
+                msg = (
+                    f"[Filtros] mode={meta.mode} | text_filter={'on' if meta.exclude_bad_text else 'off'} | "
+                    f"min_valid={meta.min_valid_price:.0f}€ | "
+                    f"quitados: texto={meta.removed_text}, <=min={meta.removed_min_price}"
+                )
+                if meta.applied_median_filter and meta.median_raw and meta.lower_bound and meta.upper_bound:
+                    msg += (
+                        f", mediana={meta.median_raw:.2f}€ rango=({meta.lower_bound:.2f}–{meta.upper_bound:.2f})€ "
+                        f"fuera: bajos={meta.removed_low}, altos={meta.removed_high}"
+                    )
+                print(msg)
 
             inserted = save_products(kw, productos)
             print(f"✅ OK '{kw}' (insertados {inserted})")

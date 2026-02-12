@@ -316,25 +316,36 @@
             </div>
 
             <div class="col-md-4">
-              <label for="limit_manual" class="form-label">Límite de anuncios</label>
-              <input type="number" class="form-control" name="limit_manual" id="limit_manual" value="300" min="1" max="1000">
-            </div>
-
-            <div class="col-md-4">
-              <label for="order_by_manual" class="form-label">Orden</label>
-              <select name="order_by_manual" id="order_by_manual" class="form-select">
-                <option value="most_relevance">Más relevantes</option>
-                <option value="price_low_to_high">Precio: de menor a mayor</option>
-                <option value="price_high_to_low">Precio: de mayor a menor</option>
-                <option value="newest">Más recientes</option>
-              </select>
-            </div>
-
-            <div class="col-md-4">
               <label class="form-label">Rango de precios </label>
               <div class="d-flex gap-1">
                 <input type="number" class="form-control" name="min_price_manual" id="min_price_manual" step="1" placeholder="Mín.">
                 <input type="number" class="form-control" name="max_price_manual" id="max_price_manual" step="1" placeholder="Máx.">
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label for="filter_mode_manual" class="form-label">Limpieza de precios</label>
+              <select class="form-select" name="filter_mode_manual" id="filter_mode_manual">
+                <option value="soft" selected>Suave (recomendado)</option>
+                <option value="strict">Estricto</option>
+                <option value="off">Desactivado</option>
+              </select>
+              <div class="valyro-subtitle mt-1">Suave = recorta 0/1€ + outliers; Estricto = recorta más.</div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Filtro por texto</label>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="exclude_bad_text_manual" id="exclude_bad_text_manual" checked>
+                <label class="form-check-label" for="exclude_bad_text_manual">
+                  Excluir rotos / piezas / solo caja / busco / servicio
+                </label>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="alert alert-light border mb-0" role="alert">
+                <strong>Parámetros fijos:</strong> se analizan <strong>500</strong> anuncios y se ordena por <strong>Más relevantes</strong>.
               </div>
             </div>
 
@@ -470,10 +481,10 @@
               <thead class="table-light">
                 <tr>
                   <th style="min-width: 260px;">Keyword</th>
-                  <th style="width: 120px;" class="text-end">Límite</th>
-                  <th style="min-width: 220px;">Orden</th>
                   <th style="width: 140px;" class="text-end">Mín.</th>
                   <th style="width: 140px;" class="text-end">Máx.</th>
+                  <th style="width: 170px;">Filtro</th>
+                  <th style="width: 150px;">Texto</th>
                   <th style="width: 56px;"></th>
                 </tr>
               </thead>
@@ -482,17 +493,22 @@
                 {% if rows|length == 0 %}
                   <tr class="daily-row">
                     <td><input type="text" class="form-control" name="daily_kw[]" placeholder="ej. iphone 12"></td>
-                    <td><input type="number" class="form-control text-end" name="daily_limit[]" value="{{ daily_defaults.limit }}" min="1" max="1000"></td>
-                    <td>
-                      <select class="form-select" name="daily_order_by[]">
-                        <option value="most_relevance" selected>Más relevantes</option>
-                        <option value="price_low_to_high">Precio: de menor a mayor</option>
-                        <option value="price_high_to_low">Precio: de mayor a menor</option>
-                        <option value="newest">Más recientes</option>
-                      </select>
-                    </td>
                     <td><input type="number" class="form-control text-end" name="daily_min_price[]" placeholder="—" step="1"></td>
                     <td><input type="number" class="form-control text-end" name="daily_max_price[]" placeholder="—" step="1"></td>
+                    <td>
+                      <select class="form-select" name="daily_filter_mode[]">
+                        <option value="soft" selected>Suave</option>
+                        <option value="strict">Estricto</option>
+                        <option value="off">Off</option>
+                      </select>
+                    </td>
+                    <td>
+                      <div class="form-check">
+                        <input type="hidden" class="daily-exclude-hidden" name="daily_exclude_bad_text[]" value="1">
+                        <input class="form-check-input daily-exclude-toggle" type="checkbox" checked>
+                        <label class="form-check-label">Excluir</label>
+                      </div>
+                    </td>
                     <td class="text-end">
                       <button type="button" class="btn btn-outline-danger btn-del-row" title="Borrar fila">
                         <i class="bi bi-trash"></i>
@@ -503,17 +519,22 @@
                   {% for r in rows %}
                     <tr class="daily-row">
                       <td><input type="text" class="form-control" name="daily_kw[]" value="{{ r.keyword }}"></td>
-                      <td><input type="number" class="form-control text-end" name="daily_limit[]" value="{{ r.limit }}" min="1" max="1000"></td>
-                      <td>
-                        <select class="form-select" name="daily_order_by[]">
-                          <option value="most_relevance" {% if r.order_by == 'most_relevance' %}selected{% endif %}>Más relevantes</option>
-                          <option value="price_low_to_high" {% if r.order_by == 'price_low_to_high' %}selected{% endif %}>Precio: de menor a mayor</option>
-                          <option value="price_high_to_low" {% if r.order_by == 'price_high_to_low' %}selected{% endif %}>Precio: de mayor a menor</option>
-                          <option value="newest" {% if r.order_by == 'newest' %}selected{% endif %}>Más recientes</option>
-                        </select>
-                      </td>
                       <td><input type="number" class="form-control text-end" name="daily_min_price[]" value="{{ '' if r.min_price is none else r.min_price }}" placeholder="—" step="1"></td>
                       <td><input type="number" class="form-control text-end" name="daily_max_price[]" value="{{ '' if r.max_price is none else r.max_price }}" placeholder="—" step="1"></td>
+                      <td>
+                        <select class="form-select" name="daily_filter_mode[]">
+                          <option value="soft" {% if r.filter_mode == 'soft' %}selected{% endif %}>Suave</option>
+                          <option value="strict" {% if r.filter_mode == 'strict' %}selected{% endif %}>Estricto</option>
+                          <option value="off" {% if r.filter_mode == 'off' %}selected{% endif %}>Off</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div class="form-check">
+                          <input type="hidden" class="daily-exclude-hidden" name="daily_exclude_bad_text[]" value="{{ '1' if r.exclude_bad_text else '0' }}">
+                          <input class="form-check-input daily-exclude-toggle" type="checkbox" {% if r.exclude_bad_text %}checked{% endif %}>
+                          <label class="form-check-label">Excluir</label>
+                        </div>
+                      </td>
                       <td class="text-end">
                         <button type="button" class="btn btn-outline-danger btn-del-row" title="Borrar fila">
                           <i class="bi bi-trash"></i>
@@ -532,7 +553,7 @@
                 <i class="bi bi-plus-circle me-1"></i> Añadir fila
               </button>
               <span class="valyro-subtitle">
-                Consejo: usa el mismo orden/rango que en el análisis individual.
+                Nota: el scrape diario usa parámetros fijos (500 anuncios, “Más relevantes”).
               </span>
             </div>
 
@@ -621,6 +642,17 @@ function startProgress() {
   const tbody = document.getElementById("dailyRows");
   const btnAdd = document.getElementById("btnAddDailyRow");
 
+  function bindTextToggles(){
+    tbody.querySelectorAll("tr.daily-row").forEach(tr => {
+      const hidden = tr.querySelector(".daily-exclude-hidden");
+      const cb = tr.querySelector(".daily-exclude-toggle");
+      if (!hidden || !cb) return;
+      cb.onchange = () => {
+        hidden.value = cb.checked ? "1" : "0";
+      };
+    });
+  }
+
   function bindDeleteButtons(){
     tbody.querySelectorAll(".btn-del-row").forEach(btn => {
       btn.onclick = () => {
@@ -628,11 +660,12 @@ function startProgress() {
         if (!tr) return;
         const rows = tbody.querySelectorAll("tr.daily-row");
         if (rows.length <= 1) {
-          tr.querySelectorAll("input").forEach(i => i.value = "");
-          const sel = tr.querySelector("select");
-          if (sel) sel.value = "most_relevance";
-          const limit = tr.querySelector('input[name="daily_limit[]"]');
-          if (limit) limit.value = "{{ daily_defaults.limit }}";
+          tr.querySelectorAll("input[type=text],input[type=number]").forEach(i => i.value = "");
+          tr.querySelectorAll("select").forEach(s => s.value = "soft");
+          const hidden = tr.querySelector(".daily-exclude-hidden");
+          const cb = tr.querySelector(".daily-exclude-toggle");
+          if (hidden) hidden.value = "1";
+          if (cb) cb.checked = true;
           return;
         }
         tr.remove();
@@ -644,17 +677,22 @@ function startProgress() {
     return `
       <tr class="daily-row">
         <td><input type="text" class="form-control" name="daily_kw[]" placeholder="ej. iphone 12"></td>
-        <td><input type="number" class="form-control text-end" name="daily_limit[]" value="{{ daily_defaults.limit }}" min="1" max="1000"></td>
-        <td>
-          <select class="form-select" name="daily_order_by[]">
-            <option value="most_relevance" selected>Más relevantes</option>
-            <option value="price_low_to_high">Precio: de menor a mayor</option>
-            <option value="price_high_to_low">Precio: de mayor a menor</option>
-            <option value="newest">Más recientes</option>
-          </select>
-        </td>
         <td><input type="number" class="form-control text-end" name="daily_min_price[]" placeholder="—" step="1"></td>
         <td><input type="number" class="form-control text-end" name="daily_max_price[]" placeholder="—" step="1"></td>
+        <td>
+          <select class="form-select" name="daily_filter_mode[]">
+            <option value="soft" selected>Suave</option>
+            <option value="strict">Estricto</option>
+            <option value="off">Off</option>
+          </select>
+        </td>
+        <td>
+          <div class="form-check">
+            <input type="hidden" class="daily-exclude-hidden" name="daily_exclude_bad_text[]" value="1">
+            <input class="form-check-input daily-exclude-toggle" type="checkbox" checked>
+            <label class="form-check-label">Excluir</label>
+          </div>
+        </td>
         <td class="text-end">
           <button type="button" class="btn btn-outline-danger btn-del-row" title="Borrar fila">
             <i class="bi bi-trash"></i>
@@ -667,9 +705,11 @@ function startProgress() {
   btnAdd?.addEventListener("click", () => {
     tbody.insertAdjacentHTML("beforeend", newRowHtml());
     bindDeleteButtons();
+    bindTextToggles();
   });
 
   bindDeleteButtons();
+  bindTextToggles();
 })();
 </script>
 </body>

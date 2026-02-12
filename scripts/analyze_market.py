@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 
 from crawler.wallapop_client import fetch_products
 from utils.db import save_products
+from utils.listing_filters import apply_listing_filters
 
 
 def calcular_estadisticas(productos):
@@ -111,20 +112,36 @@ def main() -> int:
         default="most_relevance",
     )
     parser.add_argument("--limit", type=int, default=300, help="Máximo de productos a recoger (0–1000)")
-    parser.add_argument("--filter", type=str, default=None, help="Cadena que debe aparecer en titulo+descripcion")
+    parser.add_argument("--filter", type=str, default=None, help="(OPCIONAL) tokens que deben aparecer en titulo+descripcion")
     parser.add_argument("--min_price", type=float, default=None, help="Precio mínimo")
     parser.add_argument("--max_price", type=float, default=None, help="Precio máximo")
     parser.add_argument("--save_raw", action="store_true", help="Guarda JSON crudo en data/")
     parser.add_argument("--save_db", action="store_true", help="Guarda en SQLite")
 
-    # NUEVO
-    parser.add_argument("--headless", action="store_true", help="Ejecuta navegador en modo headless (recomendado en auto-scrape)")
-    parser.add_argument("--strict", action="store_true", help="Si no hay señales de API/search, falla con exit code != 0")
+    # Filtros (recomendado en Wallapop)
+    parser.add_argument(
+        "--filter_mode",
+        choices=["soft", "strict", "off"],
+        default="soft",
+        help="Preset de limpieza de precios: soft (recomendado), strict, off",
+    )
+    parser.add_argument(
+        "--no_text_filter",
+        action="store_true",
+        help="No excluye anuncios rotos/para piezas/solo caja/busco/etc.",
+    )
+
+    parser.add_argument("--headless", action="store_true", help="Ejecuta navegador en modo headless")
+    parser.add_argument("--strict", action="store_true", help="Si no hay señales de JSON con items, falla con exit code != 0")
 
     args = parser.parse_args()
 
     limit = max(0, min(args.limit, 1000))
-    substring_filter = args.filter or args.keyword
+
+    # ⚠️ IMPORTANTE: NO autofiltrar por keyword (Wallapop ya filtra por keyword).
+    # Solo filtra si el usuario pasa --filter
+    substring_filter = args.filter
+
     min_price = args.min_price
     max_price = args.max_price
 
@@ -145,13 +162,33 @@ def main() -> int:
         substring_filter=substring_filter,
         min_price=min_price,
         max_price=max_price,
-        headless=True if args.headless else None,
+        headless=args.headless,   # ✅ NUNCA None
         strict=args.strict,
     )
 
     if not productos:
-        print("\nNo se han obtenido productos. Revisa filtros / keyword / bloqueo.")
-        return 2  # IMPORTANTE: que daily_scrape pueda reintentar
+        print("\nNo se han obtenido productos. Revisa bloqueo / captcha / filtros.")
+        return 2  # para que daily_scrape pueda reintentar
+
+    # --- Limpieza Wallapop: texto + mínimo absoluto + outliers por mediana ---
+    productos, meta = apply_listing_filters(
+        productos,
+        mode=args.filter_mode,
+        exclude_bad_text=(not args.no_text_filter),
+    )
+
+    if meta.total_in != meta.kept:
+        msg = (
+            f"[Filtros] mode={meta.mode} | text_filter={'on' if meta.exclude_bad_text else 'off'} | "
+            f"min_valid={meta.min_valid_price:.0f}€ | "
+            f"quitados: texto={meta.removed_text}, <=min={meta.removed_min_price}"
+        )
+        if meta.applied_median_filter and meta.median_raw and meta.lower_bound and meta.upper_bound:
+            msg += (
+                f", mediana={meta.median_raw:.2f}€ rango=({meta.lower_bound:.2f}–{meta.upper_bound:.2f})€ "
+                f"fuera: bajos={meta.removed_low}, altos={meta.removed_high}"
+            )
+        print(msg)
 
     if args.save_raw:
         Path("data").mkdir(exist_ok=True)

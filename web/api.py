@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.db import DB_PATH, get_connection
-from analytics.market_core import get_last_run_stats, get_sell_speed_summary
+from analytics.market_core import get_last_run_stats, get_sell_speed_summary, fetch_mean_median_series
 import subprocess
 import sys as _sys
 
@@ -23,10 +23,6 @@ import sys as _sys
 API_VERSION = "v1"
 
 # API key muy simple para futuro SaaS.
-# De momento la dejamos a None → NO se exige.
-# Cuando quieras protegerla:
-#   - pon aquí una cadena, o
-#   - léela de un fichero de config / variable de entorno.
 API_KEY: Optional[str] = None
 
 api_bp = Blueprint("api", __name__)
@@ -37,15 +33,6 @@ api_bp = Blueprint("api", __name__)
 # ==========================
 
 def api_error(code: str, message: str, http_status: int = 400):
-    """
-    Respuesta de error estándar:
-    {
-      "error": {
-        "code": "string",
-        "message": "texto"
-      }
-    }
-    """
     payload = {
         "error": {
             "code": code,
@@ -56,12 +43,6 @@ def api_error(code: str, message: str, http_status: int = 400):
 
 
 def require_api_key(fn: Callable):
-    """
-    Decorador MUY sencillo de API key.
-
-    - Si API_KEY es None -> no hace nada (auth desactivada).
-    - Si API_KEY tiene valor -> exige header 'X-API-Key' igual a API_KEY.
-    """
     def wrapper(*args: Any, **kwargs: Any):
         if API_KEY is not None:
             sent_key = request.headers.get("X-API-Key")
@@ -69,16 +50,12 @@ def require_api_key(fn: Callable):
                 return api_error("unauthorized", "API key inválida o ausente", 401)
         return fn(*args, **kwargs)
 
-    # Mantener nombre y docstring para Flask
     wrapper.__name__ = fn.__name__
     wrapper.__doc__ = fn.__doc__
     return wrapper
 
 
 def _load_keywords_from_db():
-    """
-    Lista de keywords distintos que hay en la BD.
-    """
     if not DB_PATH.is_file():
         return []
 
@@ -103,24 +80,12 @@ def _run_analyze_market(
     order_by: str,
     min_price: Optional[float],
     max_price: Optional[float],
+    filter_mode: str,
+    exclude_bad_text: bool,
 ) -> int:
-    """
-    Lanza scripts.analyze_market como hace la web.
-    Siempre con --save_db.
-    """
-    if limit <= 0:
-        limit = 50
-    if limit > 1000:
-        limit = 1000
-
-    allowed_orders = {
-        "most_relevance",
-        "price_low_to_high",
-        "price_high_to_low",
-        "newest",
-    }
-    if order_by not in allowed_orders:
-        order_by = "most_relevance"
+    # Por requisito: el usuario no puede elegir límite ni orden desde API.
+    limit = 500
+    order_by = "most_relevance"
 
     cmd = [
         _sys.executable,
@@ -133,6 +98,13 @@ def _run_analyze_market(
         str(limit),
         "--save_db",
     ]
+
+    fm = (filter_mode or "soft").strip().lower()
+    if fm not in ("soft", "strict", "off"):
+        fm = "soft"
+    cmd.extend(["--filter_mode", fm])
+    if not exclude_bad_text:
+        cmd.append("--no_text_filter")
 
     if min_price is not None:
         cmd.extend(["--min_price", str(min_price)])
@@ -153,10 +125,6 @@ def _run_analyze_market(
 @api_bp.get("/keywords")
 @require_api_key
 def api_list_keywords():
-    """
-    GET /api/v1/keywords
-    Devuelve: { "keywords": ["iphone 12", "ps5", ...] }
-    """
     kws = _load_keywords_from_db()
     return jsonify({"keywords": kws})
 
@@ -164,18 +132,6 @@ def api_list_keywords():
 @api_bp.get("/keyword/<kw>/stats")
 @require_api_key
 def api_keyword_stats(kw):
-    """
-    GET /api/v1/keyword/<kw>/stats
-
-    Devuelve stats de la última run, rangos de precio y velocidad de salida:
-    {
-      "keyword": "...",
-      "scraped_at": "...",
-      "stats": {...},
-      "price_ranges": {...},
-      "sell_speed": {...} | null
-    }
-    """
     kw = kw.strip()
     if not kw:
         return api_error("invalid_keyword", "keyword vacío", 400)
@@ -233,35 +189,56 @@ def api_keyword_stats(kw):
     return jsonify(payload)
 
 
+@api_bp.get("/keyword/<kw>/series")
+@require_api_key
+def api_keyword_series(kw):
+    """
+    GET /api/v1/keyword/<kw>/series
+    {
+      "keyword": "...",
+      "series": [
+        { "scraped_at": "...", "media": 0.0, "mediana": 0.0 },
+        ...
+      ]
+    }
+    """
+    kw = kw.strip()
+    if not kw:
+        return api_error("invalid_keyword", "keyword vacío", 400)
+
+    serie = fetch_mean_median_series(kw)  # { datetime: {media, mediana}, ... }
+    if not serie:
+        return api_error("not_found", "No hay histórico para ese keyword", 404)
+
+    out = []
+    for dt, v in serie.items():
+        out.append(
+            {
+                "scraped_at": dt.isoformat(),
+                "media": float(v.get("media", 0.0)),
+                "mediana": float(v.get("mediana", 0.0)),
+            }
+        )
+
+    return jsonify({"keyword": kw, "series": out})
+
+
 @api_bp.post("/keyword/<kw>/scrape")
 @require_api_key
 def api_keyword_scrape(kw):
-    """
-    POST /api/v1/keyword/<kw>/scrape
-    Body JSON opcional:
-      {
-        "limit": 300,
-        "order_by": "most_relevance" | "price_low_to_high" | "price_high_to_low" | "newest",
-        "min_price": 50,
-        "max_price": 400
-      }
-    """
     kw = kw.strip()
     if not kw:
         return api_error("invalid_keyword", "keyword vacío", 400)
 
     data = request.get_json(silent=True) or {}
 
-    limit = data.get("limit", 300)
-    order_by = data.get("order_by", "most_relevance")
+    # limit y order_by: ignorados (fijos por requisito)
+    limit = 500
+    order_by = "most_relevance"
     min_price = data.get("min_price", None)
     max_price = data.get("max_price", None)
-
-    # Normalizamos tipos
-    try:
-        limit = int(limit)
-    except (TypeError, ValueError):
-        return api_error("invalid_limit", "limit debe ser un entero", 400)
+    filter_mode = (data.get("filter_mode") or "soft")
+    exclude_bad_text = data.get("exclude_bad_text")
 
     def _parse_float(val):
         if val is None:
@@ -274,30 +251,36 @@ def api_keyword_scrape(kw):
     min_price = _parse_float(min_price)
     max_price = _parse_float(max_price)
 
-    if (
-        min_price is not None
-        and max_price is not None
-        and min_price > max_price
-    ):
+    fm = str(filter_mode).strip().lower()
+    if fm not in ("soft", "strict", "off"):
+        fm = "soft"
+    filter_mode = fm
+
+    if isinstance(exclude_bad_text, bool):
+        pass
+    elif exclude_bad_text is None:
+        exclude_bad_text = True
+    else:
+        exclude_bad_text = str(exclude_bad_text).strip().lower() in ("1", "true", "yes", "on")
+
+    if min_price is not None and max_price is not None and min_price > max_price:
         min_price, max_price = max_price, min_price
 
-    rc = _run_analyze_market(kw, limit, order_by, min_price, max_price)
+    rc = _run_analyze_market(kw, limit, order_by, min_price, max_price, filter_mode, bool(exclude_bad_text))
 
     if rc != 0:
-        return api_error(
-            "scrape_failed",
-            "Ha fallado la ejecución interna de analyze_market.",
-            500,
-        )
+        return api_error("scrape_failed", "Ha fallado la ejecución interna de analyze_market.", 500)
 
     return jsonify(
         {
             "keyword": kw,
             "status": "ok",
             "message": "Scrape lanzado y datos guardados en la BD.",
-            "limit": limit,
-            "order_by": order_by,
+            "limit": 500,
+            "order_by": "most_relevance",
             "min_price": min_price,
             "max_price": max_price,
+            "filter_mode": filter_mode,
+            "exclude_bad_text": bool(exclude_bad_text),
         }
     )
