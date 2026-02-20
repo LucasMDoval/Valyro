@@ -226,7 +226,7 @@ def run_one_keyword(item: dict, *, max_retries: int, base_backoff_s: int) -> boo
                 msg = (
                     f"[Filtros] mode={meta.mode} | text_filter={'on' if meta.exclude_bad_text else 'off'} | "
                     f"min_valid={meta.min_valid_price:.0f}€ | "
-                    f"quitados: texto={meta.removed_text}, <=min={meta.removed_min_price}"
+                    f"quitados: texto={meta.removed_text}, intent={getattr(meta, 'removed_intent', 0)}, <=min={meta.removed_min_price}"
                 )
                 if meta.applied_median_filter and meta.median_raw and meta.lower_bound and meta.upper_bound:
                     msg += (

@@ -7,7 +7,7 @@ import { PriceChart } from './components/PriceChart';
 import { ProductComparisonTable } from './components/ProductComparisonTable';
 import { ProductDetailPanel } from './components/ProductDetailPanel';
 import { Footer } from './components/Footer';
-import { Smartphone } from 'lucide-react';
+import { iconForSearchQuery } from './utils/searchIcon';
 
 import { getKeywordSeries, getKeywordStats, listKeywords, scrapeKeyword } from './api/valyro';
 
@@ -131,7 +131,7 @@ export default function App() {
       keyword: r.keyword,
       medianPrice: r.median,
       priceChange: priceChangeByKw[r.keyword] ?? 0,
-      icon: <Smartphone className="w-6 h-6" />,
+      icon: iconForSearchQuery(r.keyword),
     }));
   }, [tableRows, priceChangeByKw]);
 
@@ -148,7 +148,7 @@ export default function App() {
         keyword,
         medianPrice,
         priceChange: priceChangeByKw[keyword] ?? 0,
-        icon: <Smartphone className="w-6 h-6" />,
+        icon: iconForSearchQuery(keyword),
       };
     setSelectedProduct(product);
   };

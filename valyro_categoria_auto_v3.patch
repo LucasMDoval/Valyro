@@ -1,0 +1,1672 @@
+diff --git a/.gitignore b/.gitignore
+index d52ae34..7e7640a 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -13,7 +13,8 @@ venv/
+ # =========================
+ # Datos locales (NO subir)
+ # =========================
+-data/
++data/*
++!data/category_tree.json
+ logs/
+ reports/
+ plots/
+diff --git a/crawler/wallapop_client.py b/crawler/wallapop_client.py
+index 64c382f..7fc3c1d 100644
+--- a/crawler/wallapop_client.py
++++ b/crawler/wallapop_client.py
+@@ -1,6 +1,6 @@
+ from __future__ import annotations
+ 
+-from typing import Any, Dict, List, Optional
++from typing import Any, Dict, List, Optional, Union
+ from urllib.parse import quote_plus
+ 
+ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+@@ -9,6 +9,7 @@ from playwright.sync_api import sync_playwright
+ import random
+ import re
+ import json
++import os
+ 
+ from utils.logger import get_logger
+ 
+@@ -156,6 +157,9 @@ def fetch_products(
+     substring_filter: Optional[str] = None,
+     min_price: Optional[float] = None,
+     max_price: Optional[float] = None,
++    category_id: Optional[str] = None,
++    subcategory_ids: Optional[Union[List[str], str]] = None,
++    auto_category: bool = True,
+     *,
+     headless: bool = False,
+     strict: bool = False,
+@@ -170,14 +174,43 @@ def fetch_products(
+     # ⚠️ IMPORTANTE: no autofiltrar por keyword; solo filtrar si el usuario lo pasa
+     substring = (substring_filter or "").strip() or None
+ 
++    # --- Auto-categoría (híbrido: reglas + fuzzy sobre data/category_tree.json) ---
++    effective_category_id = category_id
++    effective_subcategory_ids = subcategory_ids
++
++    if auto_category and not category_id:
++        try:
++            from utils.category_resolver import resolve_category
++
++            match = resolve_category(keyword)
++            if match.category_id:
++                effective_category_id = match.category_id
++                effective_subcategory_ids = match.subcategory_ids
++
++                if os.environ.get('VALYRO_DEBUG_CATEGORIES') == '1':
++                    print(
++                        f"[Valyro] Categoría auto: {match.label} (cat={match.category_id}, sub={match.subcategory_ids}, score={match.score:.0f}, by={match.matched_by})"
++                    )
++        except Exception as e:
++            if os.environ.get('VALYRO_DEBUG_CATEGORIES') == '1':
++                print(f"[Valyro] Error resolviendo categoría: {e}")
++
+     base = "https://es.wallapop.com/search"
+     params = [
+         "source=search_box",
+         f"keywords={quote_plus(keyword)}",
+-        "category_id=24200",
++        f"category_id={effective_category_id or '24200'}",
+         f"order_by={order_by}",
+     ]
+ 
++    if effective_subcategory_ids:
++        if isinstance(effective_subcategory_ids, (list, tuple, set)):
++            joined = ','.join(str(x) for x in effective_subcategory_ids if x)
++            if joined:
++                params.append(f"subcategory_ids={joined}")
++        else:
++            params.append(f"subcategory_ids={effective_subcategory_ids}")
++
+     if min_price is not None:
+         params.append(f"min_sale_price={int(min_price)}")
+     if max_price is not None:
+diff --git a/data/category_tree.json b/data/category_tree.json
+new file mode 100644
+index 0000000..89a68bf
+--- /dev/null
++++ b/data/category_tree.json
+@@ -0,0 +1,1257 @@
++{
++  "data": [
++    {
++      "id": "100",
++      "name": "Coches",
++      "icon": "car",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/coches-segunda-mano"
++        }
++      }
++    },
++    {
++      "id": "14000",
++      "name": "Motos",
++      "icon": "motorbike",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/motos"
++        }
++      }
++    },
++    {
++      "id": "12800",
++      "name": "Motor y accesorios",
++      "icon": "helmet",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/motor-y-accesorios"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10167",
++          "name": "Recambios de coches y furgonetas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10167&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10164",
++          "name": "GPS y electrónica",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10164&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10165",
++          "name": "Herramientas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10165&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10168",
++          "name": "Recambios de motos y cuatriciclos",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10168&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10166",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10166&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "12465",
++      "name": "Moda y accesorios",
++      "icon": "t-shirt",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/moda-y-complementos"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "11002",
++          "name": "Mujer",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=11002&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "11003",
++          "name": "Hombre",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=11003&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10436",
++          "name": "Accesorios",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10436&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10156",
++          "name": "Joyería",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10156&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10437",
++          "name": "Belleza",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10437&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "200",
++      "name": "Inmobiliaria",
++      "icon": "house",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/inmobiliaria"
++        }
++      }
++    },
++    {
++      "id": "12545",
++      "name": "Tecnología y electrónica",
++      "icon": "robot",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/tv-audio-foto"
++        }
++      }
++    },
++    {
++      "id": "16000",
++      "name": "Móviles y Telefonía",
++      "icon": "phone",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/moviles-telefonos"
++        }
++      }
++    },
++    {
++      "id": "15000",
++      "name": "Informática",
++      "icon": "pc",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/electronica"
++        }
++      }
++    },
++    {
++      "id": "12579",
++      "name": "Deporte y ocio",
++      "icon": "ball",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/deporte-y-ocio"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10094",
++          "name": "Baloncesto",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10094&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10101",
++          "name": "Manualidades",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10101&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10096",
++          "name": "Estáticas y elípticas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10096&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10097",
++          "name": "Fitness, running y yoga",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10097&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10099",
++          "name": "Golf",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10099&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10095",
++          "name": "Balonmano",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10095&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10102",
++          "name": "Montaña y esquí",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10102&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10105",
++          "name": "Otros deportes",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10105&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10100",
++          "name": "Juegos recreativos y de mesa",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10100&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10107",
++          "name": "Rugby",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10107&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10106",
++          "name": "Patinetes y patinaje",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10106&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10098",
++          "name": "Fútbol",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10098&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10103",
++          "name": "Natación y accesorios piscina",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10103&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10108",
++          "name": "Tenis y pádel",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10108&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10109",
++          "name": "Vóley",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10109&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10104",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10104&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "17000",
++      "name": "Bicicletas",
++      "icon": "bike",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/bicicletas"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10055",
++          "name": "Accesorios para bicicletas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10055&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10058",
++          "name": "Piezas y recambios de bici",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10058&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10056",
++          "name": "Bicicletas y triciclos",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10056&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10059",
++          "name": "Protección y vestimenta",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10059&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10057",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10057&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "12900",
++      "name": "Consolas y Videojuegos",
++      "icon": "gamepad",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/consolas-y-videojuegos"
++        }
++      }
++    },
++    {
++      "id": "12467",
++      "name": "Hogar y jardín",
++      "icon": "furniture",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/muebles-deco-y-jardin"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10125",
++          "name": "Muebles y organización",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10125&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10119",
++          "name": "Baño y accesorios",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10119&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10120",
++          "name": "Cocina",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10120&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10122",
++          "name": "Decoración y espejos",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10122&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10123",
++          "name": "Iluminación",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10123&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10124",
++          "name": "Jardín y exteriores",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10124&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "24276",
++          "name": "Calefacción y climatización",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=24276&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10118",
++          "name": "Artículos para mascotas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10118&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "13100",
++      "name": "Electrodomésticos",
++      "icon": "laundry",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/electrodomesticos"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10111",
++          "name": "Electrodomésticos de cocina",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10111&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10112",
++          "name": "Lavandería y plancha",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10112&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10114",
++          "name": "Piezas y recambios",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10114&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10113",
++          "name": "Pequeños electrodomésticos",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10113&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10115",
++          "name": "Vitrocerámica",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10115&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10441",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10441&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "12463",
++      "name": "Cine, libros y música",
++      "icon": "bookshelf",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/libros-pelis-musica"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "24003",
++          "name": "Libros, cómics y revistas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=24003&category_id=12463&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "24002",
++          "name": "Cine y series",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=24002&category_id=12463&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "24001",
++          "name": "Música",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=24001&category_id=12463&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "12461",
++      "name": "Niños y bebés",
++      "icon": "baby_car",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/ninos-y-bebes"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10178",
++          "name": "Alimentación del bebé",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10178&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10185",
++          "name": "Mobiliario infantil",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10185&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10181",
++          "name": "Transporte del bebé",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10181&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10177",
++          "name": "Accesorios de baño",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10177&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10187",
++          "name": "Ropa infantil",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10187&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10183",
++          "name": "Disfraces infantiles",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10183&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10182",
++          "name": "Cunas y camas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10182&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10189",
++          "name": "Tronas y andadores",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10189&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10179",
++          "name": "Artículos de maternidad",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10179&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10188",
++          "name": "Seguridad y cuidado",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10188&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10180",
++          "name": "Artículos escolares",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10180&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10184",
++          "name": "Juguetes, juegos y peluches",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10184&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10186",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10186&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "18000",
++      "name": "Coleccionismo",
++      "icon": "collecting",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/coleccionismo"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10071",
++          "name": "Antigüedades",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10071&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10075",
++          "name": "Coches y motocicletas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10075&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10081",
++          "name": "Monedas y billetes",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10081&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10073",
++          "name": "Artículos de escritorio",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10073&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10074",
++          "name": "Banderas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10074&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10072",
++          "name": "Artesanías y decoración",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10072&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10080",
++          "name": "Llaveros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10080&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10079",
++          "name": "Imanes",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10079&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10083",
++          "name": "Naipes",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10083&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10085",
++          "name": "Postales y suvenires",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10085&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10076",
++          "name": "Coleccionismo deportivo",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10076&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10078",
++          "name": "Filatelia y sellos",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10078&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10082",
++          "name": "Muñecos",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10082&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10077",
++          "name": "Coleccionismo militar",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10077&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10086",
++          "name": "Relojes",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10086&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10084",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10084&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "19000",
++      "name": "Construcción y reformas",
++      "icon": "building",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/construccion-y-reformas"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10138",
++          "name": "Balcones",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10138&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10149",
++          "name": "Puertas y ventanas",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10149&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10141",
++          "name": "Electricidad e Iluminación",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10141&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10147",
++          "name": "Pavimentos y revestimientos",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10147&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10143",
++          "name": "Ferretería",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10143&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10142",
++          "name": "Escaleras y andamios",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10142&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10148",
++          "name": "Pinturas y barnices",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10148&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10144",
++          "name": "Herramientas y maquinaria",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10144&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10145",
++          "name": "Madera y otros materiales",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10145&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10146",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10146&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "20000",
++      "name": "Industria y agricultura",
++      "icon": "farming",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/industria-agricultura"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10128",
++          "name": "Agricultura",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10128&category_id=20000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10129",
++          "name": "Industria",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10129&category_id=20000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "21000",
++      "name": "Empleo",
++      "icon": "jobs",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/empleo"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10117",
++          "name": "Ofertas de empleo",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10117&category_id=21000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10116",
++          "name": "Busco empleo",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10116&category_id=21000&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "13200",
++      "name": "Servicios",
++      "icon": "toolbox",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/servicios"
++        }
++      },
++      "subcategories": [
++        {
++          "id": "10191",
++          "name": "Cuidadoras y niñeras",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10191&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10190",
++          "name": "Clases y entrenamiento",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10190&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10195",
++          "name": "Servicios de limpieza",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10195&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10196",
++          "name": "Servicios del hogar",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10196&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10192",
++          "name": "Mudanzas y transporte",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10192&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10194",
++          "name": "Reparaciones",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10194&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10197",
++          "name": "Terapia y crecimiento personal",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10197&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        },
++        {
++          "id": "10193",
++          "name": "Otros",
++          "action": {
++            "action_type": "link",
++            "payload": {
++              "link_url": "https://es.wallapop.com/search?subcategory_ids=10193&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
++            }
++          }
++        }
++      ]
++    },
++    {
++      "id": "12485",
++      "name": "Otros",
++      "icon": "ghost",
++      "action": {
++        "action_type": "link",
++        "payload": {
++          "link_url": "https://es.wallapop.com/otros"
++        }
++      }
++    }
++  ],
++  "meta": {
++    "type": "categories",
++    "title": "Buscar por categoría",
++    "layout": "slider",
++    "variant": "baseline"
++  }
++}
+\ No newline at end of file
+diff --git a/requirements.txt b/requirements.txt
+index 1a154dd..e4bbb97 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -28,3 +28,4 @@ pywebview==6.1
+ six==1.17.0
+ typing_extensions==4.15.0
+ Werkzeug==3.1.4
++rapidfuzz==3.13.0
+diff --git a/utils/category_resolver.py b/utils/category_resolver.py
+new file mode 100644
+index 0000000..5cf27e5
+--- /dev/null
++++ b/utils/category_resolver.py
+@@ -0,0 +1,304 @@
++from __future__ import annotations
++
++"""Resolución automática de categoría (Wallapop).
++
++Objetivo: dado un término de búsqueda (keyword), elegir un (category_id) y opcionalmente
++(subcategory_ids) para reducir ruido (accesorios, anuncios no relacionados, etc.).
++
++Estrategia híbrida:
++1) Reglas rápidas por palabras/brands (alta precisión en casos típicos: consolas, relojes...).
++2) Fuzzy-matching contra el árbol de categorías (category_tree.json) como fallback.
++
++El árbol se espera en: data/category_tree.json (puedes reemplazarlo cuando Wallapop cambie IDs).
++"""
++
++from dataclasses import dataclass
++from pathlib import Path
++from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
++import json
++import re
++import unicodedata
++
++from rapidfuzz import fuzz, process
++
++
++PROJECT_ROOT = Path(__file__).resolve().parents[1]
++DEFAULT_TREE_PATH = PROJECT_ROOT / "data" / "category_tree.json"
++
++
++@dataclass(frozen=True)
++class CategoryMatch:
++    category_id: Optional[str]
++    subcategory_ids: Optional[List[str]]
++    label: Optional[str]
++    score: float
++    matched_by: str  # 'rules' | 'fuzzy' | 'none'
++
++
++# ---------------------
++# Normalización
++# ---------------------
++
++def _norm(s: str) -> str:
++    s = (s or "").strip().lower()
++    s = "".join(ch for ch in unicodedata.normalize("NFD", s) if unicodedata.category(ch) != "Mn")
++    s = re.sub(r"\s+", " ", s)
++    return s
++
++
++def _tokens(s: str) -> List[str]:
++    s = _norm(s)
++    # letras, números y +/# (iphone 14 pro, s23 ultra, etc.)
++    parts = re.findall(r"[a-z0-9\+#]+", s)
++    return [p for p in parts if p]
++
++
++# ---------------------
++# Carga / flatten del árbol
++# ---------------------
++
++_TREE_CACHE: Dict[str, Tuple[List[Dict[str, Any]], List[str]]] = {}
++
++
++def _load_tree(tree_path: Path) -> List[Dict[str, Any]]:
++    data = json.loads(tree_path.read_text(encoding="utf-8"))
++    # formato esperado: { data: [...] }
++    if isinstance(data, dict) and isinstance(data.get("data"), list):
++        return data["data"]
++    # fallback si ya es una lista
++    if isinstance(data, list):
++        return data
++    raise ValueError("Formato de category_tree.json inesperado")
++
++
++def _flatten_tree(tree: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
++    """Devuelve candidatos para matching.
++
++    Cada candidato:
++      { "category_id": <root>, "subcategory_ids": [<leaf>]|None,
++        "label": "Root > ... > Leaf", "leaf_name": "Leaf", "is_root": bool }
++
++    Nota: Wallapop usa 'category_id' (root) + 'subcategory_ids' (nodo/leaf). Para root solo,
++    dejamos subcategory_ids=None.
++    """
++
++    out: List[Dict[str, Any]] = []
++
++    def walk(node: Dict[str, Any], root_id: str, path: List[str], *, is_root: bool = False) -> None:
++        name = str(node.get("name") or "").strip()
++        node_id = str(node.get("id") or "").strip()
++        if not name or not node_id:
++            return
++
++        if is_root:
++            out.append(
++                {
++                    "category_id": root_id,
++                    "subcategory_ids": None,
++                    "label": name,
++                    "leaf_name": name,
++                    "is_root": True,
++                }
++            )
++            new_path = [name]
++        else:
++            # candidato como subcategoría (aunque tenga hijos)
++            label = " > ".join(path + [name]) if path else name
++            out.append(
++                {
++                    "category_id": root_id,
++                    "subcategory_ids": [node_id],
++                    "label": label,
++                    "leaf_name": name,
++                    "is_root": False,
++                }
++            )
++            new_path = path + [name]
++
++        subs = node.get("subcategories")
++        if isinstance(subs, list):
++            for child in subs:
++                if isinstance(child, dict):
++                    walk(child, root_id, new_path, is_root=False)
++
++    for root in tree:
++        if not isinstance(root, dict):
++            continue
++        root_id = str(root.get("id") or "").strip()
++        if not root_id:
++            continue
++        walk(root, root_id, [], is_root=True)
++
++    return out
++
++
++def _get_candidates(tree_path: Path) -> Tuple[List[Dict[str, Any]], List[str]]:
++    key = str(tree_path.resolve())
++    if key in _TREE_CACHE:
++        return _TREE_CACHE[key]
++
++    tree = _load_tree(tree_path)
++    candidates = _flatten_tree(tree)
++    labels = [c["label"] for c in candidates]
++    _TREE_CACHE[key] = (candidates, labels)
++    return candidates, labels
++
++
++# ---------------------
++# Reglas (alta precisión)
++# ---------------------
++
++# Nota: listas intencionalmente pequeñas. Puedes ampliarlas según tu producto.
++WATCH_BRANDS = {
++    "seiko",
++    "casio",
++    "citizen",
++    "orient",
++    "tissot",
++    "longines",
++    "rolex",
++    "omega",
++    "tag",
++    "tagheuer",
++    "hublot",
++    "cartier",
++    "swatch",
++    "garmin",
++    "gshock",
++    "g-shock",
++}
++
++CONSOLE_TERMS = {
++    "ps4",
++    "ps5",
++    "playstation",
++    "xbox",
++    "seriesx",
++    "series s",
++    "xboxone",
++    "nintendo",
++    "switch",
++    "wii",
++    "3ds",
++    "2ds",
++}
++
++PHONE_TERMS = {
++    "iphone",
++    "ipad",
++    "samsung",
++    "galaxy",
++    "xiaomi",
++    "redmi",
++    "poco",
++    "huawei",
++    "honor",
++    "oneplus",
++    "pixel",
++}
++
++
++def _find_best_leaf_name(candidates: List[Dict[str, Any]], leaf_name: str) -> Optional[Dict[str, Any]]:
++    leaf_name_n = _norm(leaf_name)
++    hits = [c for c in candidates if _norm(c.get("leaf_name", "")) == leaf_name_n]
++    if not hits:
++        return None
++
++    # preferir rutas más específicas (con subcategory_ids)
++    hits.sort(key=lambda c: (c["subcategory_ids"] is None, len(c["label"])) )
++    return hits[0]
++
++
++def _find_root_name(tree: List[Dict[str, Any]], root_name: str) -> Optional[str]:
++    rn = _norm(root_name)
++    for root in tree:
++        if not isinstance(root, dict):
++            continue
++        if _norm(str(root.get("name") or "")) == rn:
++            rid = str(root.get("id") or "").strip()
++            return rid or None
++    return None
++
++
++# ---------------------
++# API
++# ---------------------
++
++
++def resolve_category(
++    keyword: str,
++    *,
++    tree_path: Optional[Union[str, Path]] = None,
++    min_score_root: float = 60.0,
++    min_score_leaf: float = 75.0,
++) -> CategoryMatch:
++    """Devuelve la mejor categoría para 'keyword'.
++
++    - Si aplica una regla -> matched_by='rules' y score=100.
++    - Si no, usa fuzzy sobre el árbol -> matched_by='fuzzy'.
++    - Si no supera umbrales -> matched_by='none' (sin categoría).
++
++    Umbrales:
++    - leaf (subcategory_ids) requiere más score.
++    - root (solo category_id) permite menos score.
++    """
++
++    kw = (keyword or "").strip()
++    if not kw:
++        return CategoryMatch(None, None, None, 0.0, "none")
++
++    path = Path(tree_path) if tree_path is not None else DEFAULT_TREE_PATH
++    if not path.is_file():
++        return CategoryMatch(None, None, None, 0.0, "none")
++
++    tree = _load_tree(path)
++    candidates, labels = _get_candidates(path)
++
++    kw_n = _norm(kw)
++    toks = set(_tokens(kw_n))
++
++    # 1) Reglas por intención/brand
++    if toks & WATCH_BRANDS:
++        # Preferencia: si existe 'Relojes' dentro de 'Moda y accesorios', úsalo primero.
++        relojes_hits = [c for c in candidates if _norm(c.get('leaf_name', '')) == _norm('Relojes')]
++        moda_hits = [c for c in relojes_hits if _norm(c.get('label', '')).startswith(_norm('Moda y accesorios'))]
++        hit = (moda_hits[0] if moda_hits else (relojes_hits[0] if relojes_hits else None))
++
++        if hit:
++            return CategoryMatch(hit['category_id'], hit['subcategory_ids'], hit['label'], 100.0, 'rules')
++
++        # fallback: si no existe leaf "Relojes" en el árbol, usa Moda y accesorios si existe
++        rid = _find_root_name(tree, "Moda y accesorios")
++        if rid:
++            return CategoryMatch(rid, None, "Moda y accesorios", 90.0, "rules")
++
++    if any(term in kw_n for term in ("ps4", "ps5", "playstation", "xbox", "nintendo", "switch", "wii")):
++        rid = _find_root_name(tree, "Consolas y Videojuegos")
++        if rid:
++            return CategoryMatch(rid, None, "Consolas y Videojuegos", 100.0, "rules")
++
++    if toks & PHONE_TERMS:
++        rid = _find_root_name(tree, "Moviles y Telefonia") or _find_root_name(tree, "Móviles y Telefonía")
++        if rid:
++            return CategoryMatch(rid, None, "Móviles y Telefonía", 95.0, "rules")
++
++    # 2) Fuzzy matching contra labels (root y subcategorías)
++    # Usamos WRatio (combina token-set, partial, etc.).
++    best = process.extractOne(kw, labels, scorer=fuzz.WRatio)
++    if not best:
++        return CategoryMatch(None, None, None, 0.0, "none")
++
++    best_label, best_score, best_idx = best
++    cand = candidates[int(best_idx)]
++
++    # leaf necesita score más alto (para no bloquear resultados por categoría errónea)
++    if cand.get("subcategory_ids") is not None:
++        if float(best_score) >= float(min_score_leaf):
++            return CategoryMatch(cand["category_id"], cand["subcategory_ids"], cand["label"], float(best_score), "fuzzy")
++        return CategoryMatch(None, None, None, float(best_score), "none")
++
++    # root acepta score menor
++    if float(best_score) >= float(min_score_root):
++        return CategoryMatch(cand["category_id"], None, cand["label"], float(best_score), "fuzzy")
++
++    return CategoryMatch(None, None, None, float(best_score), "none")

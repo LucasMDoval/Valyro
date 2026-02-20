@@ -82,6 +82,8 @@ def _run_analyze_market(
     max_price: Optional[float],
     filter_mode: str,
     exclude_bad_text: bool,
+    category_id: Optional[int],
+    intent_mode: str,
 ) -> int:
     # Por requisito: el usuario no puede elegir límite ni orden desde API.
     limit = 500
@@ -98,6 +100,15 @@ def _run_analyze_market(
         str(limit),
         "--save_db",
     ]
+
+    if category_id is not None:
+        cmd.extend(["--category_id", str(int(category_id))])
+
+    im = (intent_mode or "any").strip().lower()
+    if im not in ("any", "primary", "console", "auto"):
+        im = "any"
+    if im != "any":
+        cmd.extend(["--intent_mode", im])
 
     fm = (filter_mode or "soft").strip().lower()
     if fm not in ("soft", "strict", "off"):
@@ -237,8 +248,18 @@ def api_keyword_scrape(kw):
     order_by = "most_relevance"
     min_price = data.get("min_price", None)
     max_price = data.get("max_price", None)
+    category_id = data.get("category_id", None)
+    intent_mode = (data.get("intent_mode") or "any")
     filter_mode = (data.get("filter_mode") or "soft")
     exclude_bad_text = data.get("exclude_bad_text")
+
+    def _parse_int(val):
+        if val is None:
+            return None
+        try:
+            return int(val)
+        except (TypeError, ValueError):
+            return None
 
     def _parse_float(val):
         if val is None:
@@ -250,11 +271,19 @@ def api_keyword_scrape(kw):
 
     min_price = _parse_float(min_price)
     max_price = _parse_float(max_price)
+    category_id = _parse_int(category_id)
+    if category_id is None:
+        category_id = 24200
 
     fm = str(filter_mode).strip().lower()
     if fm not in ("soft", "strict", "off"):
         fm = "soft"
     filter_mode = fm
+
+    im = str(intent_mode).strip().lower()
+    if im not in ("any", "primary", "console", "auto"):
+        im = "any"
+    intent_mode = im
 
     if isinstance(exclude_bad_text, bool):
         pass
@@ -266,7 +295,7 @@ def api_keyword_scrape(kw):
     if min_price is not None and max_price is not None and min_price > max_price:
         min_price, max_price = max_price, min_price
 
-    rc = _run_analyze_market(kw, limit, order_by, min_price, max_price, filter_mode, bool(exclude_bad_text))
+    rc = _run_analyze_market(kw, limit, order_by, min_price, max_price, filter_mode, bool(exclude_bad_text), category_id, intent_mode)
 
     if rc != 0:
         return api_error("scrape_failed", "Ha fallado la ejecución interna de analyze_market.", 500)
@@ -280,6 +309,8 @@ def api_keyword_scrape(kw):
             "order_by": "most_relevance",
             "min_price": min_price,
             "max_price": max_price,
+            "category_id": category_id,
+            "intent_mode": intent_mode,
             "filter_mode": filter_mode,
             "exclude_bad_text": bool(exclude_bad_text),
         }

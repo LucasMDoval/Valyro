@@ -6,6 +6,8 @@ type ScrapeOpts = {
   max_price?: number;
   filter_mode?: 'soft' | 'strict' | 'off';
   exclude_bad_text?: boolean;
+  category_id?: number;
+  intent_mode?: 'any' | 'primary' | 'console' | 'auto';
 };
 
 export function SearchBar(props: { onAnalyze: (keyword: string, opts: ScrapeOpts) => Promise<void> }) {
@@ -16,6 +18,8 @@ export function SearchBar(props: { onAnalyze: (keyword: string, opts: ScrapeOpts
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [filterMode, setFilterMode] = useState<'soft' | 'strict' | 'off'>('soft');
   const [excludeBadText, setExcludeBadText] = useState<boolean>(true);
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [intentMode, setIntentMode] = useState<'any' | 'primary' | 'console' | 'auto'>('auto');
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -70,6 +74,8 @@ export function SearchBar(props: { onAnalyze: (keyword: string, opts: ScrapeOpts
       max_price: toNumOrUndef(maxPrice),
       filter_mode: filterMode,
       exclude_bad_text: excludeBadText,
+      category_id: toNumOrUndef(categoryId),
+      intent_mode: intentMode,
     };
 
     setBusy(true);
@@ -118,8 +124,33 @@ export function SearchBar(props: { onAnalyze: (keyword: string, opts: ScrapeOpts
             </button>
           </div>
 
-          {/* fila 2: filtros */}
-          <div className="flex flex-wrap gap-3 items-center">
+{/* fila 2: filtros */}
+<div className="flex flex-wrap gap-3 items-center">
+  <div className="flex items-center gap-2">
+    <span className="text-white/80 text-sm">Tipo</span>
+    <select
+      value={intentMode}
+      onChange={(e) => setIntentMode(e.target.value as any)}
+      className="px-3 py-2 rounded-lg bg-white text-[#0F172A]"
+    >
+      <option value="auto">auto</option>
+      <option value="any">sin filtro</option>
+      <option value="primary">producto principal</option>
+      <option value="console">consola</option>
+    </select>
+  </div>
+
+  <div className="flex items-center gap-2">
+    <span className="text-white/80 text-sm">Cat. ID</span>
+    <input
+      type="number"
+      value={categoryId}
+      onChange={(e) => setCategoryId(e.target.value)}
+      className="w-28 px-3 py-2 rounded-lg bg-white text-[#0F172A]"
+      placeholder="—"
+    />
+  </div>
+
             <div className="flex items-center gap-2">
               <span className="text-white/80 text-sm">Min €</span>
               <input

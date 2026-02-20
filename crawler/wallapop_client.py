@@ -156,6 +156,8 @@ def fetch_products(
     substring_filter: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
+
+    category_id: Optional[int] = 24200,
     *,
     headless: bool = False,
     strict: bool = False,
@@ -174,9 +176,16 @@ def fetch_products(
     params = [
         "source=search_box",
         f"keywords={quote_plus(keyword)}",
-        "category_id=24200",
-        f"order_by={order_by}",
     ]
+
+    # category_id: por defecto 24200 (general). Si lo pasas a None, no se envía.
+    if category_id is not None:
+        try:
+            params.append(f"category_id={int(category_id)}")
+        except Exception:
+            params.append("category_id=24200")
+
+    params.append(f"order_by={order_by}")
 
     if min_price is not None:
         params.append(f"min_sale_price={int(min_price)}")

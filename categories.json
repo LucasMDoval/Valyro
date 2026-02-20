@@ -1,0 +1,1257 @@
+{
+  "data": [
+    {
+      "id": "100",
+      "name": "Coches",
+      "icon": "car",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/coches-segunda-mano"
+        }
+      }
+    },
+    {
+      "id": "14000",
+      "name": "Motos",
+      "icon": "motorbike",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/motos"
+        }
+      }
+    },
+    {
+      "id": "12800",
+      "name": "Motor y accesorios",
+      "icon": "helmet",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/motor-y-accesorios"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10167",
+          "name": "Recambios de coches y furgonetas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10167&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10164",
+          "name": "GPS y electrónica",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10164&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10165",
+          "name": "Herramientas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10165&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10168",
+          "name": "Recambios de motos y cuatriciclos",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10168&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10166",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10166&category_id=12800&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "12465",
+      "name": "Moda y accesorios",
+      "icon": "t-shirt",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/moda-y-complementos"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "11002",
+          "name": "Mujer",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=11002&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "11003",
+          "name": "Hombre",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=11003&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10436",
+          "name": "Accesorios",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10436&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10156",
+          "name": "Joyería",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10156&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10437",
+          "name": "Belleza",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10437&category_id=12465&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "200",
+      "name": "Inmobiliaria",
+      "icon": "house",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/inmobiliaria"
+        }
+      }
+    },
+    {
+      "id": "12545",
+      "name": "Tecnología y electrónica",
+      "icon": "robot",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/tv-audio-foto"
+        }
+      }
+    },
+    {
+      "id": "16000",
+      "name": "Móviles y Telefonía",
+      "icon": "phone",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/moviles-telefonos"
+        }
+      }
+    },
+    {
+      "id": "15000",
+      "name": "Informática",
+      "icon": "pc",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/electronica"
+        }
+      }
+    },
+    {
+      "id": "12579",
+      "name": "Deporte y ocio",
+      "icon": "ball",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/deporte-y-ocio"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10094",
+          "name": "Baloncesto",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10094&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10101",
+          "name": "Manualidades",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10101&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10096",
+          "name": "Estáticas y elípticas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10096&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10097",
+          "name": "Fitness, running y yoga",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10097&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10099",
+          "name": "Golf",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10099&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10095",
+          "name": "Balonmano",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10095&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10102",
+          "name": "Montaña y esquí",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10102&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10105",
+          "name": "Otros deportes",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10105&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10100",
+          "name": "Juegos recreativos y de mesa",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10100&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10107",
+          "name": "Rugby",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10107&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10106",
+          "name": "Patinetes y patinaje",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10106&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10098",
+          "name": "Fútbol",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10098&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10103",
+          "name": "Natación y accesorios piscina",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10103&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10108",
+          "name": "Tenis y pádel",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10108&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10109",
+          "name": "Vóley",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10109&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10104",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10104&category_id=12579&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "17000",
+      "name": "Bicicletas",
+      "icon": "bike",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/bicicletas"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10055",
+          "name": "Accesorios para bicicletas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10055&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10058",
+          "name": "Piezas y recambios de bici",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10058&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10056",
+          "name": "Bicicletas y triciclos",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10056&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10059",
+          "name": "Protección y vestimenta",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10059&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10057",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10057&category_id=17000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "12900",
+      "name": "Consolas y Videojuegos",
+      "icon": "gamepad",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/consolas-y-videojuegos"
+        }
+      }
+    },
+    {
+      "id": "12467",
+      "name": "Hogar y jardín",
+      "icon": "furniture",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/muebles-deco-y-jardin"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10125",
+          "name": "Muebles y organización",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10125&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10119",
+          "name": "Baño y accesorios",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10119&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10120",
+          "name": "Cocina",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10120&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10122",
+          "name": "Decoración y espejos",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10122&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10123",
+          "name": "Iluminación",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10123&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10124",
+          "name": "Jardín y exteriores",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10124&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "24276",
+          "name": "Calefacción y climatización",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=24276&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10118",
+          "name": "Artículos para mascotas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10118&category_id=12467&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "13100",
+      "name": "Electrodomésticos",
+      "icon": "laundry",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/electrodomesticos"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10111",
+          "name": "Electrodomésticos de cocina",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10111&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10112",
+          "name": "Lavandería y plancha",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10112&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10114",
+          "name": "Piezas y recambios",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10114&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10113",
+          "name": "Pequeños electrodomésticos",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10113&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10115",
+          "name": "Vitrocerámica",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10115&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10441",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10441&category_id=13100&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "12463",
+      "name": "Cine, libros y música",
+      "icon": "bookshelf",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/libros-pelis-musica"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "24003",
+          "name": "Libros, cómics y revistas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=24003&category_id=12463&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "24002",
+          "name": "Cine y series",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=24002&category_id=12463&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "24001",
+          "name": "Música",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=24001&category_id=12463&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "12461",
+      "name": "Niños y bebés",
+      "icon": "baby_car",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/ninos-y-bebes"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10178",
+          "name": "Alimentación del bebé",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10178&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10185",
+          "name": "Mobiliario infantil",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10185&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10181",
+          "name": "Transporte del bebé",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10181&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10177",
+          "name": "Accesorios de baño",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10177&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10187",
+          "name": "Ropa infantil",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10187&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10183",
+          "name": "Disfraces infantiles",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10183&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10182",
+          "name": "Cunas y camas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10182&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10189",
+          "name": "Tronas y andadores",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10189&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10179",
+          "name": "Artículos de maternidad",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10179&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10188",
+          "name": "Seguridad y cuidado",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10188&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10180",
+          "name": "Artículos escolares",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10180&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10184",
+          "name": "Juguetes, juegos y peluches",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10184&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10186",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10186&category_id=12461&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "18000",
+      "name": "Coleccionismo",
+      "icon": "collecting",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/coleccionismo"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10071",
+          "name": "Antigüedades",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10071&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10075",
+          "name": "Coches y motocicletas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10075&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10081",
+          "name": "Monedas y billetes",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10081&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10073",
+          "name": "Artículos de escritorio",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10073&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10074",
+          "name": "Banderas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10074&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10072",
+          "name": "Artesanías y decoración",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10072&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10080",
+          "name": "Llaveros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10080&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10079",
+          "name": "Imanes",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10079&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10083",
+          "name": "Naipes",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10083&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10085",
+          "name": "Postales y suvenires",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10085&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10076",
+          "name": "Coleccionismo deportivo",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10076&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10078",
+          "name": "Filatelia y sellos",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10078&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10082",
+          "name": "Muñecos",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10082&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10077",
+          "name": "Coleccionismo militar",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10077&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10086",
+          "name": "Relojes",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10086&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10084",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10084&category_id=18000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "19000",
+      "name": "Construcción y reformas",
+      "icon": "building",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/construccion-y-reformas"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10138",
+          "name": "Balcones",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10138&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10149",
+          "name": "Puertas y ventanas",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10149&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10141",
+          "name": "Electricidad e Iluminación",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10141&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10147",
+          "name": "Pavimentos y revestimientos",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10147&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10143",
+          "name": "Ferretería",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10143&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10142",
+          "name": "Escaleras y andamios",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10142&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10148",
+          "name": "Pinturas y barnices",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10148&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10144",
+          "name": "Herramientas y maquinaria",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10144&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10145",
+          "name": "Madera y otros materiales",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10145&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10146",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10146&category_id=19000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "20000",
+      "name": "Industria y agricultura",
+      "icon": "farming",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/industria-agricultura"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10128",
+          "name": "Agricultura",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10128&category_id=20000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10129",
+          "name": "Industria",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10129&category_id=20000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "21000",
+      "name": "Empleo",
+      "icon": "jobs",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/empleo"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10117",
+          "name": "Ofertas de empleo",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10117&category_id=21000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10116",
+          "name": "Busco empleo",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10116&category_id=21000&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "13200",
+      "name": "Servicios",
+      "icon": "toolbox",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/servicios"
+        }
+      },
+      "subcategories": [
+        {
+          "id": "10191",
+          "name": "Cuidadoras y niñeras",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10191&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10190",
+          "name": "Clases y entrenamiento",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10190&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10195",
+          "name": "Servicios de limpieza",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10195&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10196",
+          "name": "Servicios del hogar",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10196&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10192",
+          "name": "Mudanzas y transporte",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10192&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10194",
+          "name": "Reparaciones",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10194&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10197",
+          "name": "Terapia y crecimiento personal",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10197&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        },
+        {
+          "id": "10193",
+          "name": "Otros",
+          "action": {
+            "action_type": "link",
+            "payload": {
+              "link_url": "https://es.wallapop.com/search?subcategory_ids=10193&category_id=13200&initiative=category_navigation&source=subcategory_navigation"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "12485",
+      "name": "Otros",
+      "icon": "ghost",
+      "action": {
+        "action_type": "link",
+        "payload": {
+          "link_url": "https://es.wallapop.com/otros"
+        }
+      }
+    }
+  ],
+  "meta": {
+    "type": "categories",
+    "title": "Buscar por categoría",
+    "layout": "slider",
+    "variant": "baseline"
+  }
+}

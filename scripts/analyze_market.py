@@ -115,6 +115,13 @@ def main() -> int:
     parser.add_argument("--filter", type=str, default=None, help="(OPCIONAL) tokens que deben aparecer en titulo+descripcion")
     parser.add_argument("--min_price", type=float, default=None, help="Precio mínimo")
     parser.add_argument("--max_price", type=float, default=None, help="Precio máximo")
+    parser.add_argument("--category_id", type=int, default=24200, help="category_id de Wallapop (default=24200 general)")
+    parser.add_argument(
+        "--intent_mode",
+        choices=["any", "primary", "console", "auto"],
+        default="any",
+        help="Filtro extra para reducir accesorios: any (off), primary (genérico), console (consolas), auto (detecta por keyword)",
+    )
     parser.add_argument("--save_raw", action="store_true", help="Guarda JSON crudo en data/")
     parser.add_argument("--save_db", action="store_true", help="Guarda en SQLite")
 
@@ -152,7 +159,7 @@ def main() -> int:
     print(
         f"Buscando '{args.keyword}' "
         f"(orden={args.order_by}, límite={limit}, filtro='{substring_filter}', min_price={min_price}, max_price={max_price}, "
-        f"headless={args.headless}, strict={args.strict})"
+        f"category_id={args.category_id}, intent_mode={args.intent_mode}, headless={args.headless}, strict={args.strict})"
     )
 
     productos = fetch_products(
@@ -162,6 +169,7 @@ def main() -> int:
         substring_filter=substring_filter,
         min_price=min_price,
         max_price=max_price,
+        category_id=args.category_id,
         headless=args.headless,   # ✅ NUNCA None
         strict=args.strict,
     )
@@ -175,13 +183,15 @@ def main() -> int:
         productos,
         mode=args.filter_mode,
         exclude_bad_text=(not args.no_text_filter),
+        intent_mode=args.intent_mode,
+        keyword=args.keyword,
     )
 
     if meta.total_in != meta.kept:
         msg = (
             f"[Filtros] mode={meta.mode} | text_filter={'on' if meta.exclude_bad_text else 'off'} | "
             f"min_valid={meta.min_valid_price:.0f}€ | "
-            f"quitados: texto={meta.removed_text}, <=min={meta.removed_min_price}"
+            f"quitados: texto={meta.removed_text}, intent={getattr(meta, 'removed_intent', 0)}, <=min={meta.removed_min_price}"
         )
         if meta.applied_median_filter and meta.median_raw and meta.lower_bound and meta.upper_bound:
             msg += (

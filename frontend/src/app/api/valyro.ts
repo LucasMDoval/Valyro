@@ -5,6 +5,8 @@ export type ScrapeOptions = {
   max_price?: number;
   filter_mode?: 'soft' | 'strict' | 'off';
   exclude_bad_text?: boolean;
+  category_id?: number;
+  intent_mode?: 'any' | 'primary' | 'console' | 'auto';
 };
 
 // frontend/.env (opcional):

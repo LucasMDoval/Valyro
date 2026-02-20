@@ -1,0 +1,1010 @@
+diff -ruN a/Valyro/crawler/wallapop_client.py b/Valyro/crawler/wallapop_client.py
+--- a/Valyro/crawler/wallapop_client.py	2026-02-05 12:10:39.000000000 +0000
++++ b/Valyro/crawler/wallapop_client.py	2026-02-16 09:22:51.967496951 +0000
+@@ -156,6 +156,7 @@
+     substring_filter: Optional[str] = None,
+     min_price: Optional[float] = None,
+     max_price: Optional[float] = None,
++    category_id: Optional[int] = 24200,
+     *,
+     headless: bool = False,
+     strict: bool = False,
+@@ -174,10 +175,17 @@
+     params = [
+         "source=search_box",
+         f"keywords={quote_plus(keyword)}",
+-        "category_id=24200",
+-        f"order_by={order_by}",
+     ]
+ 
++    # category_id: por defecto 24200 (general). Si lo pasas a None, no se envía.
++    if category_id is not None:
++        try:
++            params.append(f"category_id={int(category_id)}")
++        except Exception:
++            params.append("category_id=24200")
++
++    params.append(f"order_by={order_by}")
++
+     if min_price is not None:
+         params.append(f"min_sale_price={int(min_price)}")
+     if max_price is not None:
+diff -ruN a/Valyro/frontend/src/app/api/valyro.ts b/Valyro/frontend/src/app/api/valyro.ts
+--- a/Valyro/frontend/src/app/api/valyro.ts	2026-02-12 10:13:26.000000000 +0000
++++ b/Valyro/frontend/src/app/api/valyro.ts	2026-02-16 09:31:24.855708674 +0000
+@@ -1,220 +1,222 @@
+-/* frontend/src/app/api/valyro.ts */
+-
+-export type ScrapeOptions = {
+-  min_price?: number;
+-  max_price?: number;
+-  filter_mode?: 'soft' | 'strict' | 'off';
+-  exclude_bad_text?: boolean;
+-};
+-
+-// frontend/.env (opcional):
+-// VITE_API_BASE_URL=http://127.0.0.1:5000/api/v1
+-const BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL ?? '/api/v1';
+-
+-function apiOrigin(): string {
+-  try {
+-    if (BASE_URL.startsWith('http://') || BASE_URL.startsWith('https://')) {
+-      return new URL(BASE_URL).origin;
+-    }
+-  } catch {}
+-  return window.location.origin;
+-}
+-
+-function toAbsoluteUrl(maybeRelative: string): string {
+-  if (!maybeRelative) return maybeRelative;
+-  if (maybeRelative.startsWith('http://') || maybeRelative.startsWith('https://')) return maybeRelative;
+-  return `${apiOrigin()}${maybeRelative.startsWith('/') ? '' : '/'}${maybeRelative}`;
+-}
+-
+-async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
+-  const url = `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+-
+-  const res = await fetch(url, init);
+-  const text = await res.text().catch(() => '');
+-
+-  if (!res.ok) {
+-    try {
+-      const j = JSON.parse(text);
+-      const msg = j?.error?.message ?? j?.message ?? text ?? `HTTP ${res.status}`;
+-      throw new Error(msg);
+-    } catch {
+-      throw new Error(text || `HTTP ${res.status}`);
+-    }
+-  }
+-
+-  if (!text) return {} as T;
+-  return JSON.parse(text) as T;
+-}
+-
+-/** ====== TIPOS ====== */
+-
+-export type KeywordStatsResponse = {
+-  keyword: string;
+-  scraped_at: string;
+-  stats: {
+-    n?: number;
+-    media?: number;
+-    mediana: number;
+-    q1: number;
+-    q2: number;
+-    q3: number;
+-    minimo?: number;
+-    maximo?: number;
+-  };
+-  price_ranges: {
+-    normal: { from: number; to: number };
+-    fast?: { from: number; to: number };
+-    slow?: { from: number; to: number };
+-    quick?: { from: number; to: number };
+-  };
+-  sell_speed?: any;
+-};
+-
+-export type KeywordRunsResponse = {
+-  keyword: string;
+-  runs: Array<{
+-    scraped_at: string;
+-    n: number;
+-    media: number;
+-    minimo: number;
+-    maximo: number;
+-  }>;
+-};
+-
+-export type KeywordSeriesResponse = {
+-  keyword: string;
+-  series: Array<{
+-    scraped_at: string;
+-    media: number;
+-    mediana: number;
+-  }>;
+-};
+-
+-export type CompareResponse = {
+-  comparison: Array<any>;
+-  plot_url?: string | null;
+-  selected: string[];
+-};
+-
+-/** ====== CORE ====== */
+-
+-export async function listKeywords(): Promise<string[]> {
+-  const r: any = await apiJson<any>('/keywords');
+-  if (Array.isArray(r)) return r;
+-  if (r && Array.isArray(r.keywords)) return r.keywords;
+-  return [];
+-}
+-
+-export async function getKeywordStats(keyword: string): Promise<KeywordStatsResponse> {
+-  const kw = encodeURIComponent(keyword);
+-  return apiJson<KeywordStatsResponse>(`/keyword/${kw}/stats`);
+-}
+-
+-export async function scrapeKeyword(keyword: string, opts?: ScrapeOptions): Promise<any> {
+-  const kw = encodeURIComponent(keyword);
+-  return apiJson(`/keyword/${kw}/scrape`, {
+-    method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
+-    body: JSON.stringify(opts ?? {}),
+-  });
+-}
+-
+-/** ====== SERIE (para % variación y gráficas) ====== */
+-
+-export async function getKeywordSeries(keyword: string): Promise<KeywordSeriesResponse> {
+-  const kw = encodeURIComponent(keyword);
+-  return apiJson<KeywordSeriesResponse>(`/keyword/${kw}/series`);
+-}
+-
+-/** ====== RUNS / BORRADO ====== */
+-
+-export async function listKeywordRuns(keyword: string): Promise<KeywordRunsResponse> {
+-  const kw = encodeURIComponent(keyword);
+-  return apiJson<KeywordRunsResponse>(`/keyword/${kw}/runs`);
+-}
+-
+-export async function deleteRun(keyword: string, scraped_at: string): Promise<{ deleted: number }> {
+-  const kw = encodeURIComponent(keyword);
+-  const sa = encodeURIComponent(scraped_at);
+-  return apiJson(`/keyword/${kw}/runs/${sa}`, { method: 'DELETE' });
+-}
+-
+-export async function deleteAllKeyword(keyword: string): Promise<{ deleted: number }> {
+-  const kw = encodeURIComponent(keyword);
+-  return apiJson(`/keyword/${kw}`, { method: 'DELETE' });
+-}
+-
+-/** ====== REPORT / PLOTS ====== */
+-
+-export async function generateReport(keyword: string): Promise<{ url: string }> {
+-  const kw = encodeURIComponent(keyword);
+-  const r = await apiJson<{ url: string }>(`/keyword/${kw}/report`, { method: 'POST' });
+-  return { url: toAbsoluteUrl(r.url) };
+-}
+-
+-export async function generateMeanMedianPlot(keyword: string): Promise<{ url: string }> {
+-  const kw = encodeURIComponent(keyword);
+-  const r = await apiJson<{ url: string }>(`/keyword/${kw}/plot/mean-median`, { method: 'POST' });
+-  return { url: toAbsoluteUrl(r.url) };
+-}
+-
+-/** ====== COMPARE ====== */
+-
+-export async function compareKeywords(keywords: string[]): Promise<CompareResponse> {
+-  const r = await apiJson<CompareResponse>(`/compare`, {
+-    method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
+-    body: JSON.stringify({ keywords }),
+-  });
+-
+-  if (r.plot_url) r.plot_url = toAbsoluteUrl(r.plot_url);
+-  return r;
+-}
+-
+-/** ====== DAILY ====== */
+-
+-export async function getDailyConfig() {
+-  return apiJson(`/daily`);
+-}
+-
+-export async function saveDailyConfig(rows: any[]) {
+-  return apiJson(`/daily`, {
+-    method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
+-    body: JSON.stringify({ rows }),
+-  });
+-}
+-
+-export async function dailyRunNow() {
+-  return apiJson(`/daily/run_now`, { method: 'POST' });
+-}
+-
+-export async function installDailyTask(time: string) {
+-  return apiJson(`/daily/task/install`, {
+-    method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
+-    body: JSON.stringify({ time }),
+-  });
+-}
+-
+-export async function removeDailyTask() {
+-  return apiJson(`/daily/task/remove`, { method: 'POST' });
+-}
+-
+-/** ====== SETUP / LEGAL ====== */
+-
+-export async function getSetupChecks() {
+-  return apiJson(`/setup/checks`);
+-}
+-
+-export async function runSetupAction(action: string) {
+-  return apiJson(`/setup/action`, {
+-    method: 'POST',
+-    headers: { 'Content-Type': 'application/json' },
+-    body: JSON.stringify({ action }),
+-  });
+-}
+-
+-export async function getLegalHtml() {
+-  return apiJson(`/legal`);
+-}
++/* frontend/src/app/api/valyro.ts */
++
++export type ScrapeOptions = {
++  min_price?: number;
++  max_price?: number;
++  filter_mode?: 'soft' | 'strict' | 'off';
++  exclude_bad_text?: boolean;
++  category_id?: number;
++  intent_mode?: 'any' | 'primary' | 'console' | 'auto';
++};
++
++// frontend/.env (opcional):
++// VITE_API_BASE_URL=http://127.0.0.1:5000/api/v1
++const BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL ?? '/api/v1';
++
++function apiOrigin(): string {
++  try {
++    if (BASE_URL.startsWith('http://') || BASE_URL.startsWith('https://')) {
++      return new URL(BASE_URL).origin;
++    }
++  } catch {}
++  return window.location.origin;
++}
++
++function toAbsoluteUrl(maybeRelative: string): string {
++  if (!maybeRelative) return maybeRelative;
++  if (maybeRelative.startsWith('http://') || maybeRelative.startsWith('https://')) return maybeRelative;
++  return `${apiOrigin()}${maybeRelative.startsWith('/') ? '' : '/'}${maybeRelative}`;
++}
++
++async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
++  const url = `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
++
++  const res = await fetch(url, init);
++  const text = await res.text().catch(() => '');
++
++  if (!res.ok) {
++    try {
++      const j = JSON.parse(text);
++      const msg = j?.error?.message ?? j?.message ?? text ?? `HTTP ${res.status}`;
++      throw new Error(msg);
++    } catch {
++      throw new Error(text || `HTTP ${res.status}`);
++    }
++  }
++
++  if (!text) return {} as T;
++  return JSON.parse(text) as T;
++}
++
++/** ====== TIPOS ====== */
++
++export type KeywordStatsResponse = {
++  keyword: string;
++  scraped_at: string;
++  stats: {
++    n?: number;
++    media?: number;
++    mediana: number;
++    q1: number;
++    q2: number;
++    q3: number;
++    minimo?: number;
++    maximo?: number;
++  };
++  price_ranges: {
++    normal: { from: number; to: number };
++    fast?: { from: number; to: number };
++    slow?: { from: number; to: number };
++    quick?: { from: number; to: number };
++  };
++  sell_speed?: any;
++};
++
++export type KeywordRunsResponse = {
++  keyword: string;
++  runs: Array<{
++    scraped_at: string;
++    n: number;
++    media: number;
++    minimo: number;
++    maximo: number;
++  }>;
++};
++
++export type KeywordSeriesResponse = {
++  keyword: string;
++  series: Array<{
++    scraped_at: string;
++    media: number;
++    mediana: number;
++  }>;
++};
++
++export type CompareResponse = {
++  comparison: Array<any>;
++  plot_url?: string | null;
++  selected: string[];
++};
++
++/** ====== CORE ====== */
++
++export async function listKeywords(): Promise<string[]> {
++  const r: any = await apiJson<any>('/keywords');
++  if (Array.isArray(r)) return r;
++  if (r && Array.isArray(r.keywords)) return r.keywords;
++  return [];
++}
++
++export async function getKeywordStats(keyword: string): Promise<KeywordStatsResponse> {
++  const kw = encodeURIComponent(keyword);
++  return apiJson<KeywordStatsResponse>(`/keyword/${kw}/stats`);
++}
++
++export async function scrapeKeyword(keyword: string, opts?: ScrapeOptions): Promise<any> {
++  const kw = encodeURIComponent(keyword);
++  return apiJson(`/keyword/${kw}/scrape`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(opts ?? {}),
++  });
++}
++
++/** ====== SERIE (para % variación y gráficas) ====== */
++
++export async function getKeywordSeries(keyword: string): Promise<KeywordSeriesResponse> {
++  const kw = encodeURIComponent(keyword);
++  return apiJson<KeywordSeriesResponse>(`/keyword/${kw}/series`);
++}
++
++/** ====== RUNS / BORRADO ====== */
++
++export async function listKeywordRuns(keyword: string): Promise<KeywordRunsResponse> {
++  const kw = encodeURIComponent(keyword);
++  return apiJson<KeywordRunsResponse>(`/keyword/${kw}/runs`);
++}
++
++export async function deleteRun(keyword: string, scraped_at: string): Promise<{ deleted: number }> {
++  const kw = encodeURIComponent(keyword);
++  const sa = encodeURIComponent(scraped_at);
++  return apiJson(`/keyword/${kw}/runs/${sa}`, { method: 'DELETE' });
++}
++
++export async function deleteAllKeyword(keyword: string): Promise<{ deleted: number }> {
++  const kw = encodeURIComponent(keyword);
++  return apiJson(`/keyword/${kw}`, { method: 'DELETE' });
++}
++
++/** ====== REPORT / PLOTS ====== */
++
++export async function generateReport(keyword: string): Promise<{ url: string }> {
++  const kw = encodeURIComponent(keyword);
++  const r = await apiJson<{ url: string }>(`/keyword/${kw}/report`, { method: 'POST' });
++  return { url: toAbsoluteUrl(r.url) };
++}
++
++export async function generateMeanMedianPlot(keyword: string): Promise<{ url: string }> {
++  const kw = encodeURIComponent(keyword);
++  const r = await apiJson<{ url: string }>(`/keyword/${kw}/plot/mean-median`, { method: 'POST' });
++  return { url: toAbsoluteUrl(r.url) };
++}
++
++/** ====== COMPARE ====== */
++
++export async function compareKeywords(keywords: string[]): Promise<CompareResponse> {
++  const r = await apiJson<CompareResponse>(`/compare`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({ keywords }),
++  });
++
++  if (r.plot_url) r.plot_url = toAbsoluteUrl(r.plot_url);
++  return r;
++}
++
++/** ====== DAILY ====== */
++
++export async function getDailyConfig() {
++  return apiJson(`/daily`);
++}
++
++export async function saveDailyConfig(rows: any[]) {
++  return apiJson(`/daily`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({ rows }),
++  });
++}
++
++export async function dailyRunNow() {
++  return apiJson(`/daily/run_now`, { method: 'POST' });
++}
++
++export async function installDailyTask(time: string) {
++  return apiJson(`/daily/task/install`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({ time }),
++  });
++}
++
++export async function removeDailyTask() {
++  return apiJson(`/daily/task/remove`, { method: 'POST' });
++}
++
++/** ====== SETUP / LEGAL ====== */
++
++export async function getSetupChecks() {
++  return apiJson(`/setup/checks`);
++}
++
++export async function runSetupAction(action: string) {
++  return apiJson(`/setup/action`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify({ action }),
++  });
++}
++
++export async function getLegalHtml() {
++  return apiJson(`/legal`);
++}
+diff -ruN a/Valyro/frontend/src/app/components/SearchBar.tsx b/Valyro/frontend/src/app/components/SearchBar.tsx
+--- a/Valyro/frontend/src/app/components/SearchBar.tsx	2026-02-09 12:51:46.000000000 +0000
++++ b/Valyro/frontend/src/app/components/SearchBar.tsx	2026-02-16 09:31:50.581761901 +0000
+@@ -6,6 +6,8 @@
+   max_price?: number;
+   filter_mode?: 'soft' | 'strict' | 'off';
+   exclude_bad_text?: boolean;
++  category_id?: number;
++  intent_mode?: 'any' | 'primary' | 'console' | 'auto';
+ };
+ 
+ export function SearchBar(props: { onAnalyze: (keyword: string, opts: ScrapeOpts) => Promise<void> }) {
+@@ -16,6 +18,8 @@
+   const [maxPrice, setMaxPrice] = useState<string>('');
+   const [filterMode, setFilterMode] = useState<'soft' | 'strict' | 'off'>('soft');
+   const [excludeBadText, setExcludeBadText] = useState<boolean>(true);
++  const [categoryId, setCategoryId] = useState<string>('');
++  const [intentMode, setIntentMode] = useState<'any' | 'primary' | 'console' | 'auto'>('auto');
+ 
+   const [busy, setBusy] = useState(false);
+   const [err, setErr] = useState<string | null>(null);
+@@ -70,6 +74,8 @@
+       max_price: toNumOrUndef(maxPrice),
+       filter_mode: filterMode,
+       exclude_bad_text: excludeBadText,
++      category_id: toNumOrUndef(categoryId),
++      intent_mode: intentMode,
+     };
+ 
+     setBusy(true);
+@@ -118,8 +124,33 @@
+             </button>
+           </div>
+ 
+-          {/* fila 2: filtros */}
+-          <div className="flex flex-wrap gap-3 items-center">
++{/* fila 2: filtros */}
++<div className="flex flex-wrap gap-3 items-center">
++  <div className="flex items-center gap-2">
++    <span className="text-white/80 text-sm">Tipo</span>
++    <select
++      value={intentMode}
++      onChange={(e) => setIntentMode(e.target.value as any)}
++      className="px-3 py-2 rounded-lg bg-white text-[#0F172A]"
++    >
++      <option value="auto">auto</option>
++      <option value="any">sin filtro</option>
++      <option value="primary">producto principal</option>
++      <option value="console">consola</option>
++    </select>
++  </div>
++
++  <div className="flex items-center gap-2">
++    <span className="text-white/80 text-sm">Cat. ID</span>
++    <input
++      type="number"
++      value={categoryId}
++      onChange={(e) => setCategoryId(e.target.value)}
++      className="w-28 px-3 py-2 rounded-lg bg-white text-[#0F172A]"
++      placeholder="—"
++    />
++  </div>
++
+             <div className="flex items-center gap-2">
+               <span className="text-white/80 text-sm">Min €</span>
+               <input
+diff -ruN a/Valyro/scripts/analyze_market.py b/Valyro/scripts/analyze_market.py
+--- a/Valyro/scripts/analyze_market.py	2026-02-05 12:10:42.000000000 +0000
++++ b/Valyro/scripts/analyze_market.py	2026-02-16 09:33:20.291030496 +0000
+@@ -115,6 +115,13 @@
+     parser.add_argument("--filter", type=str, default=None, help="(OPCIONAL) tokens que deben aparecer en titulo+descripcion")
+     parser.add_argument("--min_price", type=float, default=None, help="Precio mínimo")
+     parser.add_argument("--max_price", type=float, default=None, help="Precio máximo")
++    parser.add_argument("--category_id", type=int, default=24200, help="category_id de Wallapop (default=24200 general)")
++    parser.add_argument(
++        "--intent_mode",
++        choices=["any", "primary", "console", "auto"],
++        default="any",
++        help="Filtro extra para reducir accesorios: any (off), primary (genérico), console (consolas), auto (detecta por keyword)",
++    )
+     parser.add_argument("--save_raw", action="store_true", help="Guarda JSON crudo en data/")
+     parser.add_argument("--save_db", action="store_true", help="Guarda en SQLite")
+ 
+@@ -152,7 +159,7 @@
+     print(
+         f"Buscando '{args.keyword}' "
+         f"(orden={args.order_by}, límite={limit}, filtro='{substring_filter}', min_price={min_price}, max_price={max_price}, "
+-        f"headless={args.headless}, strict={args.strict})"
++        f"category_id={args.category_id}, intent_mode={args.intent_mode}, headless={args.headless}, strict={args.strict})"
+     )
+ 
+     productos = fetch_products(
+@@ -162,6 +169,7 @@
+         substring_filter=substring_filter,
+         min_price=min_price,
+         max_price=max_price,
++        category_id=args.category_id,
+         headless=args.headless,   # ✅ NUNCA None
+         strict=args.strict,
+     )
+@@ -175,13 +183,15 @@
+         productos,
+         mode=args.filter_mode,
+         exclude_bad_text=(not args.no_text_filter),
++        intent_mode=args.intent_mode,
++        keyword=args.keyword,
+     )
+ 
+     if meta.total_in != meta.kept:
+         msg = (
+             f"[Filtros] mode={meta.mode} | text_filter={'on' if meta.exclude_bad_text else 'off'} | "
+             f"min_valid={meta.min_valid_price:.0f}€ | "
+-            f"quitados: texto={meta.removed_text}, <=min={meta.removed_min_price}"
++            f"quitados: texto={meta.removed_text}, intent={getattr(meta, 'removed_intent', 0)}, <=min={meta.removed_min_price}"
+         )
+         if meta.applied_median_filter and meta.median_raw and meta.lower_bound and meta.upper_bound:
+             msg += (
+diff -ruN a/Valyro/scripts/daily_scrape.py b/Valyro/scripts/daily_scrape.py
+--- a/Valyro/scripts/daily_scrape.py	2026-01-02 23:55:57.000000000 +0000
++++ b/Valyro/scripts/daily_scrape.py	2026-02-16 09:32:36.485442109 +0000
+@@ -226,7 +226,7 @@
+                 msg = (
+                     f"[Filtros] mode={meta.mode} | text_filter={'on' if meta.exclude_bad_text else 'off'} | "
+                     f"min_valid={meta.min_valid_price:.0f}€ | "
+-                    f"quitados: texto={meta.removed_text}, <=min={meta.removed_min_price}"
++                    f"quitados: texto={meta.removed_text}, intent={getattr(meta, 'removed_intent', 0)}, <=min={meta.removed_min_price}"
+                 )
+                 if meta.applied_median_filter and meta.median_raw and meta.lower_bound and meta.upper_bound:
+                     msg += (
+diff -ruN a/Valyro/utils/listing_filters.py b/Valyro/utils/listing_filters.py
+--- a/Valyro/utils/listing_filters.py	2026-01-02 23:55:57.000000000 +0000
++++ b/Valyro/utils/listing_filters.py	2026-02-16 09:25:45.782046947 +0000
+@@ -135,6 +135,214 @@
+     return False
+ 
+ 
++
++# =====================
++#  Intención: producto principal vs accesorio
++# =====================
++
++# Objetivo: reducir ruido típico (accesorios/juegos/solo mando/solo funda, etc.)
++# sin cargarte anuncios buenos tipo "consola + mando" o "móvil con funda".
++#
++# Modos:
++# - any: no filtra por intención.
++# - primary: filtro genérico (accesorios) para la mayoría de búsquedas.
++# - console: filtro más duro pensado para consolas (PS/Xbox/Switch).
++# - auto: decide "console" si el keyword parece consola, si no "primary".
++
++_ACCESSORY_PREFIXES = [
++    "mando",
++    "mandos",
++    "controller",
++    "cable",
++    "cargador",
++    "funda",
++    "carcasa",
++    "protector",
++    "protector de pantalla",
++    "auriculares",
++    "soporte",
++    "base",
++    "dock",
++    "adaptador",
++    "bateria",
++    "batería",
++    "kit",
++    "juego",
++    "juegos",
++    "volante",
++    "camara",
++    "cámara",
++    "vr",
++    "gafas",
++]
++
++_ACCESSORY_PHRASES = [
++    "solo mando",
++    "mando suelto",
++    "solo cable",
++    "solo cargador",
++    "solo funda",
++    "solo carcasa",
++    "solo juego",
++    "solo juegos",
++    "sin consola",
++]
++
++_PRIMARY_MARKERS = [
++    "consola",
++    "telefono",
++    "teléfono",
++    "movil",
++    "móvil",
++    "smartphone",
++    "portatil",
++    "portátil",
++    "laptop",
++    "ordenador",
++    "computador",
++    "pc",
++    "tablet",
++    "ipad",
++    "camara",
++    "cámara",
++    "dron",
++    "drone",
++    "tv",
++    "televisor",
++    "monitor",
++]
++
++_CONSOLE_KEYWORD_MARKERS = [
++    "ps4",
++    "ps5",
++    "playstation",
++    "xbox",
++    "switch",
++    "nintendo",
++    "wii",
++    "steam deck",
++]
++
++_CONSOLE_DEVICE_MARKERS = [
++    "slim",
++    "pro",
++    "oled",
++    "lite",
++    "series x",
++    "series s",
++    "one s",
++    "one x",
++    "1tb",
++    "2tb",
++    "500gb",
++    "gb",
++    "tb",
++    "v2",
++]
++
++
++def _starts_with_any(s: str, prefixes: List[str]) -> bool:
++    s = (s or "").strip()
++    return any(s.startswith(p) for p in prefixes if p)
++
++
++def _resolve_intent_mode(intent_mode: str, keyword: Optional[str]) -> str:
++    m = (intent_mode or "any").strip().lower()
++    if m in ("off", "none"):
++        m = "any"
++    if m != "auto":
++        return m
++
++    kw = _normalize_text(keyword or "")
++    if any(tok in kw for tok in _CONSOLE_KEYWORD_MARKERS):
++        return "console"
++    return "primary"
++
++
++def _passes_primary_intent(product: Dict[str, Any], keyword: Optional[str] = None) -> bool:
++    title = _normalize_text(product.get("titulo") or "")
++    desc = _normalize_text(product.get("descripcion") or "")
++    text = (title + " " + desc).strip()
++    if not text:
++        return True
++
++    # Si el título empieza claramente por accesorio y NO hay señales de producto principal, fuera.
++    if _starts_with_any(title, _ACCESSORY_PREFIXES) and not any(m in text for m in _PRIMARY_MARKERS):
++        return False
++
++    # Frases "solo X" => normalmente accesorio suelto. Si no aparece ningún marcador de producto principal, fuera.
++    if any(ph in text for ph in _ACCESSORY_PHRASES) and not any(m in text for m in _PRIMARY_MARKERS):
++        return False
++
++    return True
++
++
++def _passes_console_intent(product: Dict[str, Any], keyword: Optional[str] = None) -> bool:
++    title = _normalize_text(product.get("titulo") or "")
++    desc = _normalize_text(product.get("descripcion") or "")
++    text = (title + " " + desc).strip()
++    if not text:
++        return True
++
++    kw = _normalize_text(keyword or "")
++    # Detecta si el keyword apunta a consola.
++    kw_is_console = any(tok in kw for tok in _CONSOLE_KEYWORD_MARKERS)
++
++    # Señales de "consola real"
++    has_console_word = "consola" in text
++    has_device_marker = any(m in text for m in _CONSOLE_DEVICE_MARKERS)
++
++    # Señales de marca/modelo (si el keyword es consola, exigimos más)
++    has_brand_marker = any(tok in text for tok in _CONSOLE_KEYWORD_MARKERS)
++
++    # Señales fuertes de accesorio/juego suelto
++    accessory_prefix = _starts_with_any(title, _ACCESSORY_PREFIXES)
++    accessory_only_phrase = any(ph in text for ph in _ACCESSORY_PHRASES)
++
++    if accessory_only_phrase and not has_console_word:
++        return False
++
++    # Si empieza por accesorio y no dice "consola" ni da señales de hardware, fuera.
++    if accessory_prefix and (not has_console_word) and (not has_device_marker):
++        return False
++
++    # Juegos sueltos (muy típico): si no dice "consola" ni marcador hardware, fuera.
++    if ("juego" in text or "juegos" in text) and (not has_console_word) and (not has_device_marker):
++        return False
++
++    # Si el anuncio dice explícitamente "consola", lo damos por bueno.
++    if has_console_word:
++        return True
++
++    # Si el keyword es consola (PS/Xbox/Switch), y aparece la marca + algún marcador de hardware => bueno.
++    if kw_is_console and has_brand_marker and has_device_marker:
++        return True
++
++    # Si el keyword es consola y NO hay marcador de hardware, suele ser accesorio (mando/cable/juego).
++    if kw_is_console and has_brand_marker and (not has_device_marker):
++        return False
++
++    # Si no estamos seguros (keyword no era consola), no tocamos.
++    return True
++
++
++def passes_intent_filter(
++    product: Dict[str, Any],
++    *,
++    intent_mode: str = "any",
++    keyword: Optional[str] = None,
++) -> bool:
++    m = _resolve_intent_mode(intent_mode, keyword)
++    if m in ("any", ""):
++        return True
++    if m == "primary":
++        return _passes_primary_intent(product, keyword=keyword)
++    if m == "console":
++        return _passes_console_intent(product, keyword=keyword)
++    # modo desconocido => no filtra
++    return True
++
++
+ # =====================
+ #  Metadatos
+ # =====================
+@@ -160,6 +368,10 @@
+     upper_bound: Optional[float]
+     n_priced_considered: int
+ 
++    # Filtro extra: intención (producto principal vs accesorio)
++    intent_mode: str = "any"
++    removed_intent: int = 0
++
+     def as_dict(self) -> Dict[str, Any]:
+         return {
+             "mode": self.mode,
+@@ -176,6 +388,8 @@
+             "lower_bound": self.lower_bound,
+             "upper_bound": self.upper_bound,
+             "n_priced_considered": self.n_priced_considered,
++            "intent_mode": self.intent_mode,
++            "removed_intent": self.removed_intent,
+         }
+ 
+ 
+@@ -276,10 +490,19 @@
+     *,
+     mode: str = "soft",
+     exclude_bad_text: bool = True,
++    intent_mode: str = "any",
++    keyword: Optional[str] = None,
+     price_key: str = "precio",
+     min_n_priced: int = 10,
+ ) -> Tuple[List[Dict[str, Any]], ListingFilterMeta]:
+-    """Aplica filtros combinados y devuelve (productos_filtrados, meta)."""
++    """Aplica filtros combinados y devuelve (productos_filtrados, meta).
++
++    Orden de aplicación (importa):
++    1) Texto (roto/para piezas/busco/solo caja/etc.)
++    2) Intención (producto principal vs accesorio)  [opcional]
++    3) Precio mínimo absoluto
++    4) Outliers por mediana (según preset)
++    """
+ 
+     total_in = len(products)
+     preset = get_preset(mode)
+@@ -289,6 +512,7 @@
+     mode_norm = (mode or "soft").strip().lower()
+ 
+     removed_text = 0
++    removed_intent = 0
+     removed_min_price = 0
+     removed_low = 0
+     removed_high = 0
+@@ -304,9 +528,21 @@
+     else:
+         tmp = list(products)
+ 
+-    # 2) mínimo absoluto
++    # 2) filtro por intención (producto principal vs accesorio)
++    resolved_intent = _resolve_intent_mode(intent_mode, keyword)
++    tmp_intent: List[Dict[str, Any]] = []
++    if resolved_intent in ("any", ""):
++        tmp_intent = tmp
++    else:
++        for p in tmp:
++            if not passes_intent_filter(p, intent_mode=resolved_intent, keyword=keyword):
++                removed_intent += 1
++                continue
++            tmp_intent.append(p)
++
++    # 3) mínimo absoluto
+     tmp2: List[Dict[str, Any]] = []
+-    for p in tmp:
++    for p in tmp_intent:
+         price = _to_float_or_none(p.get(price_key))
+         if price is None:
+             tmp2.append(p)
+@@ -316,7 +552,7 @@
+             continue
+         tmp2.append(p)
+ 
+-    # 3) mediana/outliers (solo si mode != off)
++    # 4) mediana/outliers (solo si mode != off)
+     applied_median_filter = False
+     median_raw: Optional[float] = None
+     lower_bound: Optional[float] = None
+@@ -337,7 +573,6 @@
+                 lower_bound = median_raw * lower_factor
+                 upper_bound = median_raw * upper_factor
+                 applied_median_filter = True
+-
+     else:
+         n_priced_considered = len([p for p in tmp2 if _to_float_or_none(p.get(price_key)) is not None])
+ 
+@@ -374,6 +609,8 @@
+         lower_bound=lower_bound,
+         upper_bound=upper_bound,
+         n_priced_considered=int(n_priced_considered),
++        intent_mode=str(resolved_intent),
++        removed_intent=int(removed_intent),
+     )
+ 
+     return out, meta
+diff -ruN a/Valyro/web/api.py b/Valyro/web/api.py
+--- a/Valyro/web/api.py	2026-02-11 11:57:58.000000000 +0000
++++ b/Valyro/web/api.py	2026-02-16 09:33:34.524460406 +0000
+@@ -82,6 +82,8 @@
+     max_price: Optional[float],
+     filter_mode: str,
+     exclude_bad_text: bool,
++    category_id: Optional[int],
++    intent_mode: str,
+ ) -> int:
+     # Por requisito: el usuario no puede elegir límite ni orden desde API.
+     limit = 500
+@@ -99,6 +101,15 @@
+         "--save_db",
+     ]
+ 
++    if category_id is not None:
++        cmd.extend(["--category_id", str(int(category_id))])
++
++    im = (intent_mode or "any").strip().lower()
++    if im not in ("any", "primary", "console", "auto"):
++        im = "any"
++    if im != "any":
++        cmd.extend(["--intent_mode", im])
++
+     fm = (filter_mode or "soft").strip().lower()
+     if fm not in ("soft", "strict", "off"):
+         fm = "soft"
+@@ -237,9 +248,19 @@
+     order_by = "most_relevance"
+     min_price = data.get("min_price", None)
+     max_price = data.get("max_price", None)
++    category_id = data.get("category_id", None)
++    intent_mode = (data.get("intent_mode") or "any")
+     filter_mode = (data.get("filter_mode") or "soft")
+     exclude_bad_text = data.get("exclude_bad_text")
+ 
++    def _parse_int(val):
++        if val is None:
++            return None
++        try:
++            return int(val)
++        except (TypeError, ValueError):
++            return None
++
+     def _parse_float(val):
+         if val is None:
+             return None
+@@ -250,12 +271,20 @@
+ 
+     min_price = _parse_float(min_price)
+     max_price = _parse_float(max_price)
++    category_id = _parse_int(category_id)
++    if category_id is None:
++        category_id = 24200
+ 
+     fm = str(filter_mode).strip().lower()
+     if fm not in ("soft", "strict", "off"):
+         fm = "soft"
+     filter_mode = fm
+ 
++    im = str(intent_mode).strip().lower()
++    if im not in ("any", "primary", "console", "auto"):
++        im = "any"
++    intent_mode = im
++
+     if isinstance(exclude_bad_text, bool):
+         pass
+     elif exclude_bad_text is None:
+@@ -266,7 +295,7 @@
+     if min_price is not None and max_price is not None and min_price > max_price:
+         min_price, max_price = max_price, min_price
+ 
+-    rc = _run_analyze_market(kw, limit, order_by, min_price, max_price, filter_mode, bool(exclude_bad_text))
++    rc = _run_analyze_market(kw, limit, order_by, min_price, max_price, filter_mode, bool(exclude_bad_text), category_id, intent_mode)
+ 
+     if rc != 0:
+         return api_error("scrape_failed", "Ha fallado la ejecución interna de analyze_market.", 500)
+@@ -280,6 +309,8 @@
+             "order_by": "most_relevance",
+             "min_price": min_price,
+             "max_price": max_price,
++            "category_id": category_id,
++            "intent_mode": intent_mode,
+             "filter_mode": filter_mode,
+             "exclude_bad_text": bool(exclude_bad_text),
+         }
